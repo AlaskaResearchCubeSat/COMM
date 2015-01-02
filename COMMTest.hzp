@@ -1,0 +1,31 @@
+<!DOCTYPE CrossStudio_Project_File>
+<solution Name="COMMTest" target="9" version="2">
+  <project Name="COMMTest">
+    <configuration Name="Common" Platform="MSP430" Target="MSP430F2618" build_use_hardware_multiplier="16-Bit Multiplier" c_system_include_directories="$(StudioDir)/ctl/include;$(StudioDir)/include;$(PackagesDir)/include;z:/Software/include" link_symbol_definitions="CTL_IRQ_STACK_SIZE=128" link_use_multi_threaded_libraries="Yes" linker_additional_files="$(StudioDir)/ctl/lib/libctl$(LibExt).hza" linker_memory_map_file="$(PackagesDir)/targets/msp430/MSP430F2618.xml" linker_printf_fmt_level="long" linker_section_placement_file="$(StudioDir)/targets/section_placement_info_abcd_iv32.xml" msp430_identify_string="MSP430F2618" msp430_insn_set="MSP430X" project_directory="" project_type="Executable"/>
+    <folder Name="Source Files" file_name="">
+      <configuration Name="Common" filter="c;h;s;asm;inc;s43"/>
+      <file file_name="COMM.h"/>
+      <file file_name="Error_decode.c"/>
+      <file file_name="COMM_errors.h"/>
+      <file file_name="COMM.c"/>
+      <file file_name="commands.c"/>
+      <file file_name="AX25_EncodeDecode.c"/>
+      <file file_name="AX25_EncodeDecode.h"/>
+      <file file_name="Radio_functions.c"/>
+      <file file_name="Radio_functions.h"/>
+      <file file_name="main.c"/>
+      <file file_name="COMM_Events.c"/>
+      <file file_name="COMM_Events.h"/>
+    </folder>
+    <folder Name="System Files">
+      <file file_name="$(StudioDir)/ctl/source/threads.js"/>
+    </folder>
+    <configuration Name="Debug" linker_additional_files="z:/Software/lib/BUSlib_Debug.hza;z:/Software/lib/Error_SDcard_Debug.hza;z:/Software/lib/termlib_Debug.hza;z:/Software/lib/SD-lib_UCA1_Debug.hza"/>
+    <configuration Name="Release" linker_additional_files="z:/Software/lib/BUSlib_Release.hza;z:/Software/lib/Error_SDcard_Release.hza;z:/Software/lib/termlib_Release.hza;z:/Software/lib/SD-lib_Release.hza"/>
+  </project>
+  <configuration Name="MSP430 Debug" inherited_configurations="MSP430;Debug"/>
+  <configuration Name="MSP430" Platform="MSP430" hidden="Yes"/>
+  <configuration Name="Debug" build_debug_information="Yes" hidden="Yes"/>
+  <configuration Name="MSP430 Release" inherited_configurations="MSP430;Release"/>
+  <configuration Name="Release" build_debug_information="No" c_preprocessor_definitions="NDEBUG" hidden="Yes" optimize_block_locality="Yes" optimize_copy_propagation="Yes" optimize_cross_calling="Standard" optimize_cross_jumping="Yes" optimize_dead_code="Yes" optimize_jump_chaining="Yes" optimize_jump_threading="Yes" optimize_tail_merging="Yes"/>
+</solution>
