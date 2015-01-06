@@ -32,6 +32,8 @@ int data_setup(void){
                 if(crc==block->CRC){
                     //copy data table from SD card
                     memcpy(&sd_data_table,&block->dat.table,sizeof(sd_data_table));
+                    //free buffer                    
+                    BUS_free_buffer();
                     //success
                     return RET_SUCCESS;
                 }else{
@@ -56,9 +58,13 @@ int data_setup(void){
             if(resp!=RET_SUCCESS){
                 //write failed, report error
                 report_error(ERR_LEV_ERROR,COMM_ERR_SRC_DAT_STORE,COMM_ERR_DAT_INIT_WRITE,resp);
+                //free buffer                
+                BUS_free_buffer();
                 //return error
                 return SD_DAT_INIT_WRITE_ERR;
             }
+            //free bufer            
+            BUS_free_buffer();
             //return initilization error code
             return SD_DAT_INIT;
         }else{
@@ -66,6 +72,8 @@ int data_setup(void){
             report_error(ERR_LEV_ERROR,COMM_ERR_SRC_DAT_STORE,COMM_ERR_DAT_INIT_READ,resp);
             //TODO: handle this some how
         }
+        //free buffer
+        BUS_free_buffer();
     }else{
         //buffer busy, report error
         report_error(ERR_LEV_ERROR,COMM_ERR_SRC_DAT_STORE,COMM_ERR_DAT_INIT_BUFFER,0);
