@@ -8,7 +8,6 @@
 #include <ARCbus.h>
 #include <SDlib.h>
 #include <crc.h>
-#include <commandLib.h>
 #include "COMM.h"
 #include <Error.h>
 #include "COMM_errors.h"
