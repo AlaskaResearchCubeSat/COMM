@@ -26,6 +26,8 @@ void sub_events(void *p) __toplevel{
   unsigned char buf[BUS_I2C_HDR_LEN+sizeof(COMM_STAT)+BUS_I2C_CRC_LEN],*ptr;
   char TestPacket[45];  //THIS IS FOR TESTING ONLY
   unsigned int TestPacket_Len;   //THIS IS FOR TESTING ONLY
+  //source and type for SPI data
+  char src,type;
 
   for(;;){
     e=ctl_events_wait(CTL_EVENT_WAIT_ANY_EVENTS_WITH_AUTO_CLEAR,&SUB_events,SUB_EV_ALL,CTL_TIMEOUT_NONE,0);
@@ -72,9 +74,12 @@ void sub_events(void *p) __toplevel{
       //First byte contains sender address
       //Second byte contains data type
       //Both bytes are removed before the data is passed on to COMM
-      printf("rx[0] = %d\r\n", arcBus_stat.spi_stat.rx[0]);
+      src=arcBus_stat.spi_stat.rx[0];
+      type=arcBus_stat.spi_stat.rx[1];
+      printf("src = %d\r\n",src);
+      printf("type = %d\r\n",type);
 
-      switch(arcBus_stat.spi_stat.rx[0]){
+      switch(type){
       case SPI_BEACON_DAT:
         printf("trying to send beacon ON = %d\r\n",beacon_on);
         if(!beacon_on){
@@ -140,18 +145,11 @@ void sub_events(void *p) __toplevel{
 //**************** END OF TEST PACKET TEST *******************************************
 */
         break;
-
-      case SPI_IMG_DAT:
-        ctl_events_set_clear(&COMM_evt, COMM_EVT_IMG_DAT,0);              //Set event flag to process IMG data and store to SD card
-        BUS_free_buffer_from_event();
-        break;
-
-      case SPI_LEDL_DAT:
-        ctl_events_set_clear(&COMM_evt, COMM_EVT_LEDL_DAT,0);             //Set event flag to process LEDL data and store to SD card
-        BUS_free_buffer_from_event();
-        break;
-
+      //other data, write to SD card
       default:
+        //write data to SD card
+        writeData(src,type,arcBus_stat.spi_stat.rx+2);
+        //free buffer
         BUS_free_buffer_from_event();
         break;
       }
