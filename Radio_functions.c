@@ -244,7 +244,7 @@ Radio_Write_Registers(TI_CCxxx0_FSCTRL0,  0x00, CC1101);
 Radio_Write_Registers(TI_CCxxx0_FSCTRL1,  0x0C, CC1101);
 Radio_Write_Registers(TI_CCxxx0_FREQ2,    0x10, CC1101);
 Radio_Write_Registers(TI_CCxxx0_FREQ1,    0xD4, CC1101);   // 10, A7, 62 = 433 MHz;  10, C4, EC = 436 MHz; 10, BB, 13 = 435 MHz: 10, D4, 55 (6E adjusted for measured offset) = 437.565 MHz
-Radio_Write_Registers(TI_CCxxx0_FREQ0,    0x6E, CC1101);
+Radio_Write_Registers(TI_CCxxx0_FREQ0,    0x67, CC1101);
 Radio_Write_Registers(TI_CCxxx0_MDMCFG4,  0xF8, CC1101);   // F5 = 1200 baud, F8 = 9600 baud
 Radio_Write_Registers(TI_CCxxx0_MDMCFG3,  0x83, CC1101);
 Radio_Write_Registers(TI_CCxxx0_MDMCFG2,  0x04, CC1101);   // High byte: 0000 is 2-FSK and 0001 is GFSK; Low byte: 0100 no preamble/sync+carrier sense

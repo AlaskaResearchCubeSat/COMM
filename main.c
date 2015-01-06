@@ -1,12 +1,11 @@
-//COMM TEST
+//COMM FLIGHT
 //Denise Thorsen
-//2014-07-07
+//2015-1-3
 
 #include <string.h>
 #include <ctl_api.h>
 #include <msp430.h>
 #include <ARCbus.h>
-//#include <terminal.h>
 #include <SDlib.h>
 #include <stdio.h>
 #include <Error.h>
@@ -14,12 +13,11 @@
 #include "Radio_functions.h"
 
 //Define three task structures in array tasks (what are these tasks?)
-CTL_TASK_t tasks[3];
+CTL_TASK_t tasks[2];
 
 //Define stacks for each tasks, STACKSize is the middle number
 unsigned stack1[1+256+1];
-//unsigned stack2[1+512+1];
-unsigned stack3[1+256+1];
+unsigned stack2[1+256+1];
 
 //make printf and friends to send chars out UCA1 uart
 int __putchar(int c){
@@ -53,17 +51,13 @@ int main(void)
   //initialize stacks
   memset(stack1, 0xcd, sizeof(stack1));  // write known values into the stack
   stack1[0]=stack1[sizeof(stack1)/sizeof(stack1[0])-1]=0xfeed; // put marker values at the words before/after the stack
- 
-//  memset(stack2, 0xcd, sizeof(stack2));  // write known values into the stack
-//  stack2[0]=stack2[sizeof(stack2)/sizeof(stack2[0])-1]=0xfeed; // put marker values at the words before/after the stack
 
-  memset(stack3, 0xcd, sizeof(stack3));  // write known values into the stack
-  stack3[0]=stack3[sizeof(stack3)/sizeof(stack3[0])-1]=0xfeed; // put marker values at the words before/after the stack
+  memset(stack2, 0xcd, sizeof(stack2));  // write known values into the stack
+  stack2[0]=stack2[sizeof(stack2)/sizeof(stack2[0])-1]=0xfeed; // put marker values at the words before/after the stack
 
-//create tasks
+  //create tasks
   ctl_task_run(&tasks[0], BUS_PRI_LOW, COMM_events, NULL, "COMM_events", sizeof(stack1)/sizeof(stack1[0])-2,stack1+1,0);
-//  ctl_task_run(&tasks[1], BUS_PRI_NORMAL, terminal, "Test COMM code", "terminal", sizeof(stack2)/sizeof(stack2[0])-2,stack2+1,0);
-  ctl_task_run(&tasks[2], BUS_PRI_HIGH, sub_events, NULL, "sub_events", sizeof(stack3)/sizeof(stack3[0])-2,stack3+1,0);
+  ctl_task_run(&tasks[1], BUS_PRI_HIGH, sub_events, NULL, "sub_events", sizeof(stack2)/sizeof(stack2[0])-2,stack2+1,0);
    
  //Call mainLoop to initialize the ARCbus task and drop the idle task priority to zero allowing other tasks to run.  This is the idle loop.
   mainLoop();

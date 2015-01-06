@@ -5,7 +5,7 @@ typedef int BOOL;
 #define TRUE 1
 #define FALSE 0
 
-extern short beacon_on;
+extern short beacon_on, beacon_flag;
 
   //events in COMM_evt
   enum{CC1101_EV_RX_READ=1<<1,CC1101_EV_TX_START=1<<3,CC1101_EV_TX_THR=1<<4,CC1101_EV_TX_END=1<<5,COMM_EVT_IMG_DAT=1<<6,COMM_EVT_LEDL_DAT=1<<7,COMM_EVT_STATUS_REQ=1<<8,COMM_EVT_GS_DECODE=1<<9};
@@ -13,7 +13,7 @@ extern short beacon_on;
   #define COMM_EVT_ALL (CC1101_EV_RX_READ|CC1101_EV_TX_START|CC1101_EV_TX_THR|CC1101_EV_TX_END|COMM_EVT_IMG_DAT|COMM_EVT_LEDL_DAT|COMM_EVT_STATUS_REQ|COMM_EVT_GS_DECODE)
 
   //command table for GS commands
-enum{COMM_RF_OFF=0x00, COMM_RF_ON=0xFF, COMM_RESET_CDH=0x0F, COMM_DATA_TRANSFER=0xF0};
+enum{COMM_RF_OFF=0x00, COMM_RF_ON=0xFF, COMM_BEACON_STATUS=0x0F, COMM_BEACON_HELLO=0xF0, COMM_RESET_CDH=0x55, COMM_DATA_TRANSFER=0xAA};
 
   //structure for status data from COMM
   //TODO: figure out COMM status
