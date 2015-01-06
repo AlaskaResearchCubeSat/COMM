@@ -61,11 +61,11 @@ void sub_events(void *p) __toplevel{
       puts("SPI data recived:\r");
       status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE, CC1101);
       printf("status.CC1101 = 0X%02X \r\n",status.CC1101);
-      //First byte contains sender address
-      //Second byte contains data type
+      //First byte contains data type
+      //Second byte contains sender address
       //Both bytes are removed before the data is passed on to COMM
-      src=arcBus_stat.spi_stat.rx[0];
-      type=arcBus_stat.spi_stat.rx[1];
+      type=arcBus_stat.spi_stat.rx[0];
+      src=arcBus_stat.spi_stat.rx[1];
       printf("src = %d\r\n",src);
       printf("type = %d\r\n",type);
 
