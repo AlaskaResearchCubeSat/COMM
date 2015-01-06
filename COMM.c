@@ -8,6 +8,7 @@
 #include "AX25_EncodeDecode.h"
 #include "Radio_functions.h"
 #include "COMM_Events.h"
+#include "SD-dat.h"
 
 COMM_STAT status;
 short beacon_on=1;
@@ -239,6 +240,9 @@ void COMM_events(void *p) __toplevel{
 
   //init_event
   ctl_events_init(&COMM_evt,0);
+
+  //read SD card and determine the number of bytes stored
+  data_setup();
 
   //endless loop
   for(;;){
