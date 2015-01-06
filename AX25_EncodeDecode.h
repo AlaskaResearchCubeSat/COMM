@@ -9,6 +9,8 @@
 // Predefined header for packet directed to SGS
   extern const char Tx2_Header[16];
 
+  extern const char Hello[126];
+
 // Predefined test packets
   extern const char Packet_NoBit[19];
   extern const char Packet_WBit[28];

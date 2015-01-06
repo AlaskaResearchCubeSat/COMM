@@ -16,8 +16,6 @@ int comm_evt_gs_decode(void){
   unsigned char buf[BUS_I2C_HDR_LEN+30+BUS_I2C_CRC_LEN],*ptr;
 
         printf("COMM_EVT_GS_DECODE\r\n");
-//        printf("RxBuffer_Len = %d\r\n",RxBuffer_Len);
-//        for(i=0;i<14;i++) printf("RX[%d]=0x%02x\r\n",i,RxBuffer[i]);
 
     // Check destination address (all bit reversed!)
         if((RxBuffer[0] == 0x69) && (RxBuffer[1] == 0x19) && (RxBuffer[2] == 0x66) && (RxBuffer[3] == 0x29) && (RxBuffer[4] == 0x05) && (RxBuffer[5] == 0x02)){
@@ -42,12 +40,18 @@ int comm_evt_gs_decode(void){
           printf("subsystem address: 0x%02x\r\n",RxBuffer[16]);
 //          printf("num: 0x%02x\r\n",RxBuffer[17]);
 //          printf("cmd: 0x%02x\r\n",RxBuffer[18]);
-          switch(RxBuffer[18]){
+          switch(__bit_reverse_char(RxBuffer[18])){
             case COMM_RF_OFF:
               beacon_on=0;
               return RET_SUCCESS;
             case COMM_RF_ON:
               beacon_on=1;
+              return RET_SUCCESS;
+            case COMM_BEACON_STATUS:
+              beacon_flag=1;
+              return RET_SUCCESS;
+            case COMM_BEACON_HELLO:
+              beacon_flag=0;
               return RET_SUCCESS;
             case COMM_RESET_CDH:
               return RET_SUCCESS;
