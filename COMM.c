@@ -66,12 +66,12 @@ void sub_events(void *p) __toplevel{
       //Both bytes are removed before the data is passed on to COMM
       type=arcBus_stat.spi_stat.rx[0];
       src=arcBus_stat.spi_stat.rx[1];
-      printf("src = %d\r\n",src);
-      printf("type = %d\r\n",type);
+      printf("SPI: type = 0x%02x, src = 0x%02x\r\n",type, src);
+      printf("Trying to send beacon ON = %d FLAG = %d\r\n",beacon_on, beacon_flag);
+      //PrintBuffer(arcBus_stat.spi_stat.rx, arcBus_stat.spi_stat.len);  //TEST
 
       switch(type){
       case SPI_BEACON_DAT:
-        printf("Trying to send beacon ON = %d FLAG = %d\r\n",beacon_on, beacon_flag);
         if(!beacon_on){
          BUS_free_buffer_from_event();
          break;
@@ -97,7 +97,7 @@ void sub_events(void *p) __toplevel{
 
         //**** Create AX.25 packet (needs to include FCS, bit stuffed, flags) ***
         printf("Tx1Buffer_Len=%d  COMM_TXHEADER_LEN=%d\r\n", Tx1Buffer_Len,COMM_TXHEADER_LEN);
-        PrintBufferBitInv(Tx1Buffer, Tx1Buffer_Len);                              //THIS IS FOR TESTING ONLY
+//        PrintBufferBitInv(Tx1Buffer, Tx1Buffer_Len);                              //THIS IS FOR TESTING ONLY
 
         CRC_CCITT_Generator(Tx1Buffer, &Tx1Buffer_Len);                           //Generate FCS
         Stuff_Transition_Scramble(Tx1Buffer, &Tx1Buffer_Len);                     //Bit stuff - Encode for transitions - Scramble data
@@ -115,6 +115,10 @@ void sub_events(void *p) __toplevel{
 
     if(e&SUB_EV_SPI_ERR_CRC){
       puts("SPI bad CRC\r");
+      type=arcBus_stat.spi_stat.rx[0];
+      src=arcBus_stat.spi_stat.rx[1];
+      printf("SPI: type = 0x%02x, src = 0x%02x\r\n",type, src);
+      printf("Trying to send beacon ON = %d FLAG = %d\r\n",beacon_on, beacon_flag);
     }
   }
 }
