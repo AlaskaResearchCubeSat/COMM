@@ -87,8 +87,7 @@ void sub_events(void *p) __toplevel{
           }
         } else {                                                                    //SEND STATUS MESSAGE
           Tx1Buffer_Len=COMM_TXHEADER_LEN+(arcBus_stat.spi_stat.len)+1;               //Set length of message: HeaderLen+(arcbusLen)+1 for carriage return
-          Tx1Buffer[COMM_TXHEADER_LEN]=__bit_reverse_char(0x42);                      //TALK TO JESSE ABOUT WHY I CANT DEFINE SPI_BEACON_DAT = 0x42!
-          for(i=1;i<arcBus_stat.spi_stat.len;i++) {                                   //load message after header
+          for(i=0;i<arcBus_stat.spi_stat.len;i++) {                                   //load message after header
             Tx1Buffer[i+COMM_TXHEADER_LEN]=__bit_reverse_char(arcBus_stat.spi_stat.rx[i]);
           }
         }
