@@ -17,7 +17,7 @@
          SD_ACDS_DAT_START,SD_ACDS_DAT_END=SD_ACDS_DAT_START+SD_ACDS_DAT_SIZE};
 
     //return values for data_setup
-    enum{SD_DAT_INIT=1,SD_DAT_INIT_WRITE_ERR=2,SD_DAT_INIT_ERR=-1,SD_DAT_BAD_SUBSYSTEM=-2,SD_DAT_BLOCK_WRITE_ERROR=-3,SD_DAT_TABLE_WRITE_ERROR=-4};
+    enum{SD_DAT_INIT=1,SD_DAT_INIT_WRITE_ERR=2,SD_DAT_INIT_ERR=-1,SD_DAT_BAD_SUBSYSTEM=-2,SD_DAT_BLOCK_WRITE_ERROR=-3,SD_DAT_TABLE_WRITE_ERROR=-4,SD_DAT_BLOCK_READ_ERROR=-5};
 
     typedef struct{
         //saved data values
@@ -47,7 +47,9 @@
     //initialize data writing
     int data_setup(void);
     //write data to SD card in the proper area
-    int writeData(unsigned char subsystem,unsigned char type,unsigned char *dat);
+    int writeData(unsigned char subsystem,unsigned char type,const unsigned char *dat);
+    //read data block from SD card
+    int readData(unsigned char subsystem,unsigned short index,unsigned char *dat);
 
 #endif
     

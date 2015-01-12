@@ -26,6 +26,12 @@ char *err_decode(char buf[150], unsigned short source,int err, unsigned short ar
         case COMM_ERR_DAT_STORE_TABLE_WRITE:
             sprintf(buf,"Data Storage : data table write failed, SD card returned error %s",SD_error_str(argument));  
             return buf;
+        case COMM_ERR_DAT_READ_BAD_SUBSYSTEM:
+            sprintf(buf,"Data Storage : data read failed, unknown subsystem 0x%02X",argument);   
+            return buf;
+        case COMM_ERR_DAT_STORE_BLOCK_READ:
+            sprintf(buf,"Data Storage : data block read failed, SD card returned error %s",SD_error_str(argument));    
+            return buf;
       }
     break;         
   }

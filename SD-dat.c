@@ -144,3 +144,37 @@ int writeData(unsigned char subsystem,unsigned char type,const unsigned char *da
     }
     return RET_SUCCESS;
 }
+
+//read data from SD card
+int readData(unsigned char subsystem,unsigned short index,unsigned char *dat){
+    SD_blolck_addr src;
+    SD_DATA_TABLE *block; 
+    int resp;
+    //check which subsystem is being used
+    switch(subsystem){
+        case BUS_ADDR_LEDL:
+            src=SD_LEDL_DAT_START+index;
+        break;
+        case BUS_ADDR_ACDS:
+            src=SD_ACDS_DAT_START+index;
+        break;
+        case BUS_ADDR_IMG:
+            src=SD_IMG_DAT_START+index;
+        break;
+        default:
+            //unknown subystem report error
+            report_error(ERR_LEV_ERROR,COMM_ERR_SRC_DAT_STORE,COMM_ERR_DAT_READ_BAD_SUBSYSTEM,subsystem);
+            //return error
+            return SD_DAT_BAD_SUBSYSTEM;
+    }
+    resp=mmcReadBlock(src,block);
+    //check for errors
+    if(resp!=RET_SUCCESS){
+        //TODO: handle error and return
+        report_error(ERR_LEV_ERROR,COMM_ERR_SRC_DAT_STORE,COMM_ERR_DAT_STORE_BLOCK_READ,resp);
+        //return error
+        return SD_DAT_BLOCK_READ_ERROR;
+    }
+    return RET_SUCCESS;
+}
+
