@@ -106,7 +106,7 @@ void sub_events(void *p) __toplevel{
       //other data, write to SD card
       default:
         //write data to SD card
-        writeData(src,type,arcBus_stat.spi_stat.rx+2);
+        writeSD_Data(src,type,arcBus_stat.spi_stat.rx+2);
         //free buffer
         BUS_free_buffer_from_event();
         break;

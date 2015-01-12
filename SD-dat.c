@@ -83,7 +83,7 @@ int data_setup(void){
     return SD_DAT_INIT_ERR;
 }
 
-int writeData(unsigned char subsystem,unsigned char type,const unsigned char *dat){
+int writeSD_Data(unsigned char subsystem,unsigned char type,const unsigned char *dat){
     SD_blolck_addr dest;
     SD_DATA_TABLE *block;
     int resp;
@@ -146,7 +146,7 @@ int writeData(unsigned char subsystem,unsigned char type,const unsigned char *da
 }
 
 //read data from SD card
-int readData(unsigned char subsystem,unsigned short index,unsigned char *dat){
+int readSD_Data(unsigned char subsystem,unsigned short index,unsigned char *dat){
     SD_blolck_addr src;
     SD_DATA_TABLE *block; 
     int resp;

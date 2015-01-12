@@ -47,9 +47,9 @@
     //initialize data writing
     int data_setup(void);
     //write data to SD card in the proper area
-    int writeData(unsigned char subsystem,unsigned char type,const unsigned char *dat);
+    int writeSD_Data(unsigned char subsystem,unsigned char type,const unsigned char *dat);
     //read data block from SD card
-    int readData(unsigned char subsystem,unsigned short index,unsigned char *dat);
+    int readSD_Data(unsigned char subsystem,unsigned short index,unsigned char *dat);
 
 #endif
     
