@@ -146,7 +146,7 @@ int writeSD_Data(unsigned char subsystem,unsigned char type,const unsigned char 
 }
 
 //read data from SD card
-int readSD_Data(unsigned char subsystem,unsigned short index,unsigned char *dat){
+int readSD_Data(unsigned char subsystem,unsigned long index,unsigned char *dat){
     SD_blolck_addr src;
     SD_DATA_TABLE *block; 
     int resp;
