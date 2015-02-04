@@ -5,6 +5,8 @@ typedef int BOOL;
 #define TRUE 1
 #define FALSE 0
 
+#define CDH_RESET       BIT4
+
 extern short beacon_on, beacon_flag;
 
   //events in COMM_evt
@@ -13,19 +15,16 @@ extern short beacon_on, beacon_flag;
   #define COMM_EVT_ALL (CC1101_EV_RX_READ|CC1101_EV_TX_START|CC1101_EV_TX_THR|CC1101_EV_TX_END|COMM_EVT_IMG_DAT|COMM_EVT_LEDL_DAT|COMM_EVT_STATUS_REQ|COMM_EVT_GS_DECODE)
 
   //command table for GS commands
-enum{COMM_RF_OFF=0x00, COMM_RF_ON=0xFF, COMM_BEACON_STATUS=0x0F, COMM_BEACON_HELLO=0xF0, COMM_RESET_CDH=0x55, COMM_DATA_TRANSFER=0xAA};
+enum{COMM_RF_OFF=0x00, COMM_RF_ON=0xFF, COMM_BEACON_STATUS=0x0F, COMM_BEACON_HELLO=0xF0, COMM_RESET_CDH=0x33, COMM_GET_DATA=0xAA, COMM_SEND_DATA=0x55};
 
   //structure for status data from COMM
   //TODO: figure out COMM status
   typedef struct{
     unsigned char CC1101;	//MARCSTATE of CC1101 radio
-    unsigned char CC2500;	//MARCSTATE of CC2500 radio
-    unsigned char ACDS_rx;	//#ACDS packets received from ACDS waiting to be sent
-    unsigned char ACDS_tx;	//#ACDS packets sent to ground station
-    unsigned short LEDL_rx;   	//#LEDL packets received from LEDL waiting to be sent
-    unsigned short LEDL_tx;   	//#LEDL packets sent to ground station
-    unsigned char IMG_rx;    	//#IMG packets received from IMG waiting to be sent
-    unsigned char IMG_tx;    	//#IMG packets sent to ground station
+    unsigned char Num_CMD;      //Number of commands received
+    unsigned short ACDS_data;	//#ACDS packets in COMM SD card
+    unsigned long LEDL_data;   	//#LEDL packets in COMM SD card
+    unsigned short IMG_data;    //#IMG packets in COMM SD card
   }COMM_STAT;
 
   extern COMM_STAT status;
@@ -46,14 +45,14 @@ enum{COMM_RF_OFF=0x00, COMM_RF_ON=0xFF, COMM_BEACON_STATUS=0x0F, COMM_BEACON_HEL
   void PrintBuffer(char *dat, unsigned int len);
   void PrintBufferBitInv(char *dat, unsigned int len);
 
-  extern char Tx1Buffer[];
-  extern char Tx2Buffer[];
-  extern char RxBuffer[];
+  extern unsigned char Tx1Buffer[];
+  extern unsigned char RxBuffer[];
   extern unsigned int Tx1Buffer_Len, TxBufferPos, TxBytesRemaining;
   extern unsigned int RxBuffer_Len,  RxBufferPos, RxBytesRemaining;
   extern unsigned int state, small_packet, PktLenUpper, PktLenLower, PktLen;
   extern BOOL INFINITE;
   extern char temp_countTX, temp_countRX, RxFIFOLen;
   extern int Tx_Flag; //used in RF_Send_Packet not sure why
+  extern unsigned char IMG_Blk;
 
 #endif

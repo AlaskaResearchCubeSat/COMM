@@ -41,12 +41,12 @@ void TI_CC_Wait(unsigned int);
 void Reset_Radio(char);
 void Radio_Strobe(char, char);
 void Radio_Write_Registers(char addr, char value, char radio);
-void Radio_Write_Burst_Registers(char, char *, int, char);
-void Radio_Read_Burst_Registers(char, char *, int, char);
+void Radio_Write_Burst_Registers(char, unsigned char *, int, char);
+void Radio_Read_Burst_Registers(char, unsigned char *, int, char);
 char Radio_Read_Status(char addr, char radio);
 char RF_Receive_Packet(char *, char *, char);
 char Radio_Read_Registers(char addr, char radio);
-void RF_Send_Packet(char *txBuffer, int size, char radio);
+void RF_Send_Packet(unsigned char *txBuffer, int size, char radio);
 void Write_RF_Settings(char);
 
 //Definitions for CC2500 (also CC1100?) Registers

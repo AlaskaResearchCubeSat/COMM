@@ -4,6 +4,8 @@
 #include "Radio_functions.h"
 
 char paTable_CC1101[] = {0x84};  //corresponds to +5dBm
+//char paTable_CC1101[] = {0xC8};  //corresponds to +7dBm
+//char paTable_CC1101[] = {0xC0};  //corresponds to +10dBm
 char paTableLen=1;
 int Tx_Flag;
 
@@ -37,7 +39,7 @@ char Radio_Read_Registers(char addr, char radio)
 }
 
 //Function to read a multiple bytes from the radio registers
-void Radio_Read_Burst_Registers(char addr, char *buffer, int count, char radio)
+void Radio_Read_Burst_Registers(char addr, unsigned char *buffer, int count, char radio)
 {
   char i;
 
@@ -143,7 +145,7 @@ void Radio_Write_Registers(char addr, char value, char radio)
 }
 
 //Function to write multiple bytes to the radio registers
-void Radio_Write_Burst_Registers(char addr, char *buffer, int count, char radio)
+void Radio_Write_Burst_Registers(char addr, unsigned char *buffer, int count, char radio)
 {
   int i;
 
@@ -213,7 +215,7 @@ void TI_CC_Wait(unsigned int cycles)
     cycles = cycles - 6;                    // 6 cycles consumed each iteration
 }
 
-void RF_Send_Packet(char *TxBuffer, int size, char radio)
+void RF_Send_Packet(unsigned char *TxBuffer, int size, char radio)
 {
   Radio_Write_Registers(TI_CCxxx0_PKTLEN, size, CC1101);
   Radio_Write_Burst_Registers(TI_CCxxx0_TXFIFO, TxBuffer, size, radio); // Write TX data
@@ -244,7 +246,7 @@ Radio_Write_Registers(TI_CCxxx0_FSCTRL0,  0x00, CC1101);
 Radio_Write_Registers(TI_CCxxx0_FSCTRL1,  0x0C, CC1101);
 Radio_Write_Registers(TI_CCxxx0_FREQ2,    0x10, CC1101);
 Radio_Write_Registers(TI_CCxxx0_FREQ1,    0xD4, CC1101);   // 10, A7, 62 = 433 MHz;  10, C4, EC = 436 MHz; 10, BB, 13 = 435 MHz: 10, D4, 55 (6E adjusted for measured offset) = 437.565 MHz
-Radio_Write_Registers(TI_CCxxx0_FREQ0,    0x67, CC1101);
+Radio_Write_Registers(TI_CCxxx0_FREQ0,    0x66, CC1101);
 Radio_Write_Registers(TI_CCxxx0_MDMCFG4,  0xF8, CC1101);   // F5 = 1200 baud, F8 = 9600 baud
 Radio_Write_Registers(TI_CCxxx0_MDMCFG3,  0x83, CC1101);
 Radio_Write_Registers(TI_CCxxx0_MDMCFG2,  0x04, CC1101);   // High byte: 0000 is 2-FSK and 0001 is GFSK; Low byte: 0100 no preamble/sync+carrier sense
@@ -275,6 +277,7 @@ Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x02, CC1101);      // Infinite packet
 Radio_Write_Registers(TI_CCxxx0_PKTLEN,   0xFF, CC1101);      // Packet length set for fixed packet length mode
 Radio_Write_Registers(TI_CCxxx0_ADDR,     0x00, CC1101);
 Radio_Write_Registers(TI_CCxxx0_SYNC1,    0x7E, CC1101);      // SYNC Word High Byte (SYNC0 sync word low byte)
+Radio_Write_Registers(TI_CCxxx0_PATABLE,  0x84, CC1101);     //Set PA to 5dBm.
 break;
 
 /*

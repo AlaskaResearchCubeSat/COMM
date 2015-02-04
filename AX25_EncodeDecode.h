@@ -21,9 +21,9 @@
   extern unsigned char RX_SR17, RX_ST, RXFLAG, RXMASK, RxBit, ones;
 
 
-  void CRC_CCITT_Generator(char *dat, unsigned int *len);
-  void Stuff_Transition_Scramble(char *dat, unsigned int *len);
-  void Reverse_Scramble_Transition_Stuff(char *dat, unsigned int len);
+  void CRC_CCITT_Generator(unsigned char *dat, unsigned int *len);
+  void Stuff_Transition_Scramble(unsigned char *dat, unsigned int *len);
+  void Reverse_Scramble_Transition_Stuff(unsigned char *dat, unsigned int len);
 
 #endif
 

@@ -15,6 +15,7 @@
       <file file_name="COMM_Events.h"/>
       <file file_name="SD-dat.c"/>
       <file file_name="SD-dat.h"/>
+      <file file_name="AX25_EncodeDecode.h"/>
     </folder>
     <folder Name="System Files">
       <file file_name="$(StudioDir)/ctl/source/threads.js"/>
