@@ -84,7 +84,7 @@ int data_setup(void){
 }
 
 int writeSD_Data(unsigned char subsystem,unsigned char type,const unsigned char *dat){
-    SD_blolck_addr dest;
+    SD_block_addr dest;
     SD_DATA_TABLE *block;
     int resp;
     //check which subsystem is being used
@@ -147,7 +147,7 @@ int writeSD_Data(unsigned char subsystem,unsigned char type,const unsigned char 
 
 //read data from SD card
 int readSD_Data(unsigned char subsystem,unsigned long index,unsigned char *dat){
-    SD_blolck_addr src;
+    SD_block_addr src;
     SD_DATA_TABLE *block; 
     int resp;
     //check which subsystem is being used
