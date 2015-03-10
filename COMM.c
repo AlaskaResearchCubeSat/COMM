@@ -188,11 +188,11 @@ void COMM_events(void *p) __toplevel{
         Radio_Read_Burst_Registers(TI_CCxxx0_RXFIFO, RxTemp, RxThrBytes, CC1101);
         Reverse_Scramble_Transition_Stuff(RxTemp, RxThrBytes);
         status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101);
-        printf("Radio State: 0x%02x \n\r", status.CC1101);
+        //printf("Radio State: 0x%02x \n\r", status.CC1101);
     }
 
     if(e&CC1101_EV_TX_START){                 //INITIALIZE TX START
-      puts("TX Start\r\n");
+      //puts("TX Start\r\n");
       state = TX_START;
       TxBufferPos = 0;
 
@@ -211,7 +211,7 @@ void COMM_events(void *p) __toplevel{
         Radio_Strobe(TI_CCxxx0_SRX,CC1101); // do I need this?
         __delay_cycles(16000);              //what is the delay for?
         printf("Underflow Error, TX FIFO flushed, radio state now: ");
-        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101)); 
+        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101));
       }
 
       TxBytesRemaining = Tx1Buffer_Len;
@@ -248,7 +248,7 @@ void COMM_events(void *p) __toplevel{
 
     if(e & CC1101_EV_TX_THR)
     {
-      printf("TX THR\r\n");        
+      //printf("TX THR TxBytesRemaining = %d\r\n", TxBytesRemaining);        
       // Entering here indicates that the TX FIFO has emptied to below TX threshold.
       // Need to write TXThrBytes (30 bytes) from TXBuffer then move TxBufferPos by TxThrBytes
       // Then wait until interrupt received again or go to TX_END.
@@ -268,12 +268,11 @@ void COMM_events(void *p) __toplevel{
            TxBytesRemaining = 0;
            state = TX_END;
         }
+        //printf("TX THR TxBytesRemaining = %d\r\n", TxBytesRemaining); 
     }
           
     if(e & CC1101_EV_TX_END)
     {
-      printf("TX End\r\n");
-      printf("TxBufferPos = %d\r\n", TxBufferPos);
       // Entering here indicates that the TX FIFO has emptied to the last byte sent
       // No more bytes to send.
       // Need to change interrupts.        
@@ -288,6 +287,8 @@ void COMM_events(void *p) __toplevel{
 
       Radio_Write_Registers(TI_CCxxx0_PKTLEN,0xFF,CC1101);        //Reset PKTLEN
       Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x02, CC1101);    //Reset infinite packet length mode set
+      printf("TX End\r\n");
+      printf("TxBufferPos = %d\r\n", TxBufferPos);
 
       // Check for TX FIFO underflow, if yes then flush dat buffer
       if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101) == 0x16)
