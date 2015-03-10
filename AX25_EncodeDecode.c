@@ -110,7 +110,7 @@ const char Hello[126]="This is ALASKA RESEARCH CUBESAT. Please email dlthorsen@a
 //  P           0x50          0xA0
 // space        0x20          0x40
 
-void CRC_CCITT_Generator(char *dat, unsigned int *len){
+void CRC_CCITT_Generator(unsigned char *dat, unsigned int *len){
   int i,n;
   unsigned short FCS, SR=0xFFFF;
   unsigned short XORMask;
@@ -153,7 +153,7 @@ void CRC_CCITT_Generator(char *dat, unsigned int *len){
   *len=*len+2;
 }
 
-void Stuff_Transition_Scramble(char *dat, unsigned int *len){
+void Stuff_Transition_Scramble(unsigned char *dat, unsigned int *len){
   unsigned char *scratch;
   unsigned int j, k, SR;
   char m, n, ones, oldbit;
@@ -363,7 +363,7 @@ void Stuff_Transition_Scramble(char *dat, unsigned int *len){
 
 }
 
-void Reverse_Scramble_Transition_Stuff(char *indat, unsigned int inlen){
+void Reverse_Scramble_Transition_Stuff(unsigned char *indat, unsigned int inlen){
 // This function will read from the RX_FIFO into RXBuffer in RxBufferThr byte chuncks and perform the following steps
 // Unscramble the data bit wise.
 // Reverse transitions

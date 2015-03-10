@@ -13,10 +13,11 @@
 COMM_STAT status;
 short beacon_on=0, beacon_flag=0;
 CTL_EVENT_SET_t COMM_evt;
-char Tx1Buffer[600];
-char RxBuffer[600], RxTemp[30];
+unsigned char Tx1Buffer[600];
+unsigned char RxBuffer[600], RxTemp[30];
 unsigned int Tx1Buffer_Len, TxBufferPos=0, TxBytesRemaining;
 unsigned int RxBuffer_Len=0, RxBufferPos=0, RxBytesRemaining;
+unsigned char IMG_Blk;
 
 unsigned int state;
 
@@ -107,6 +108,10 @@ void sub_events(void *p) __toplevel{
       default:
         //write data to SD card
         writeSD_Data(src,type,arcBus_stat.spi_stat.rx+2);
+        if(src==BUS_ADDR_IMG && *(unsigned short*)(arcBus_stat.spi_stat.rx+2) == 0x990F){
+          IMG_Blk = arcBus_stat.spi_stat.rx[5];
+        }
+        ctl_events_set_clear(&ev_SPI_data,SPI_EV_DATA_REC,0);
         //free buffer
         BUS_free_buffer_from_event();
         break;
@@ -141,8 +146,6 @@ void COMM_events(void *p) __toplevel{
   int i, resp; 
 
   //initialize status
-    status.CC2500=0x00;                          //THIS IS FOR TESTING ONLY
-
     Reset_Radio(CC1101);                         // Reset Radios
 
   __delay_cycles(800);                          //Wait for radio to be ready before writing registers
@@ -150,7 +153,7 @@ void COMM_events(void *p) __toplevel{
                                                 // cc1101.pdf Table 13 indicates a power-on start-up time of 150 us for the crystal to be stable
                                                 // After reset chip is in IDLE state
   Write_RF_Settings(CC1101);                    // Write radios Settings
-  Radio_Write_Burst_Registers(TI_CCxxx0_PATABLE, paTable_CC1101, paTableLen, CC1101);
+//  Radio_Write_Burst_Registers(TI_CCxxx0_PATABLE, paTable_CC1101, paTableLen, CC1101);
   Radio_Interrupt_Setup();
   Radio_Strobe(TI_CCxxx0_SRX, CC1101);          //Initialize CC1101 in Rx mode
 
@@ -171,7 +174,10 @@ void COMM_events(void *p) __toplevel{
 
     //update status
     if(e&COMM_EVT_STATUS_REQ){
-       status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101);                  
+       status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101);
+       status.ACDS_data=sd_data_table.next_ACDS;	//#ACDS packets in COMM SD card
+       status.LEDL_data=sd_data_table.next_LEDL;   	//#LEDL packets in COMM SD card
+       status.IMG_data=sd_data_table.next_IMG;
     }
 
     if(e & CC1101_EV_RX_READ){                  //READ RX FIFO
@@ -182,11 +188,11 @@ void COMM_events(void *p) __toplevel{
         Radio_Read_Burst_Registers(TI_CCxxx0_RXFIFO, RxTemp, RxThrBytes, CC1101);
         Reverse_Scramble_Transition_Stuff(RxTemp, RxThrBytes);
         status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101);
-        printf("Radio State: 0x%02x \n\r", status.CC1101);
+        //printf("Radio State: 0x%02x \n\r", status.CC1101);
     }
 
     if(e&CC1101_EV_TX_START){                 //INITIALIZE TX START
-      puts("TX Start\r\n");
+      //puts("TX Start\r\n");
       state = TX_START;
       TxBufferPos = 0;
 
@@ -205,7 +211,7 @@ void COMM_events(void *p) __toplevel{
         Radio_Strobe(TI_CCxxx0_SRX,CC1101); // do I need this?
         __delay_cycles(16000);              //what is the delay for?
         printf("Underflow Error, TX FIFO flushed, radio state now: ");
-        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101)); 
+        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101));
       }
 
       TxBytesRemaining = Tx1Buffer_Len;
@@ -242,7 +248,7 @@ void COMM_events(void *p) __toplevel{
 
     if(e & CC1101_EV_TX_THR)
     {
-      printf("TX THR\r\n");        
+      //printf("TX THR TxBytesRemaining = %d\r\n", TxBytesRemaining);        
       // Entering here indicates that the TX FIFO has emptied to below TX threshold.
       // Need to write TXThrBytes (30 bytes) from TXBuffer then move TxBufferPos by TxThrBytes
       // Then wait until interrupt received again or go to TX_END.
@@ -262,26 +268,27 @@ void COMM_events(void *p) __toplevel{
            TxBytesRemaining = 0;
            state = TX_END;
         }
+        //printf("TX THR TxBytesRemaining = %d\r\n", TxBytesRemaining); 
     }
           
     if(e & CC1101_EV_TX_END)
     {
-      printf("TX End\r\n");
-      printf("TxBufferPos = %d\r\n", TxBufferPos);
       // Entering here indicates that the TX FIFO has emptied to the last byte sent
       // No more bytes to send.
       // Need to change interrupts.        
       ctl_timeout_wait(ctl_get_current_time()+26);  //25 ms delay to flush 30 possible remaining bytes.  Before we turn off power amplifier
       P6OUT &= ~RF_SW1;                             //Set T/R switches to receive
-      P2IE &= ~CC1101_GDO2;                                   // Disable Port 2 GDO2 interrupt
-      P2IFG &= ~CC1101_GDO2;                                  // Clear flag
+      P2IE &= ~CC1101_GDO2;                         // Disable Port 2 GDO2 interrupt
+      P2IFG &= ~CC1101_GDO2;                        // Clear flag
 
       while (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101) == 0x13){
          __delay_cycles(500);
       }
 
       Radio_Write_Registers(TI_CCxxx0_PKTLEN,0xFF,CC1101);        //Reset PKTLEN
-      Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x02, CC1101);    // Reset infinite packet length mode set
+      Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x02, CC1101);    //Reset infinite packet length mode set
+      printf("TX End\r\n");
+      printf("TxBufferPos = %d\r\n", TxBufferPos);
 
       // Check for TX FIFO underflow, if yes then flush dat buffer
       if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101) == 0x16)
@@ -294,6 +301,7 @@ void COMM_events(void *p) __toplevel{
       }
 
       // Toggle LED to indicate packet sent
+      ctl_events_set_clear(&ev_SPI_data,SPI_EV_DATA_TX,0);
       P7OUT ^= BIT7;
     }
 
@@ -355,7 +363,7 @@ void COMM_Setup(void){
 
 //Radio SW P6.0, P6.1 (outputs)
   P6OUT = 0x00;
-  P6DIR = RF_SW1|RF_SW2;
+  P6DIR |= RF_SW1|RF_SW2;
   P6SEL = 0;
 
 //SD Card SPI on P3/P5: P3.6=UCA1SIMO, P3.7=UCA2SOMI, P5.0=UCA1CLK
