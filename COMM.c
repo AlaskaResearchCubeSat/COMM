@@ -1,17 +1,15 @@
 #include <msp430.h>
-#include <ctl_api.h>
+#include <ctl.h>
 #include <stdio.h>
 #include <ARCbus.h>
 #include <string.h>
 #include <SDlib.h>
 #include "COMM.h"
-#include "AX25_EncodeDecode.h"
 #include "Radio_functions.h"
-#include "COMM_Events.h"
-#include "SD-dat.h"
 
 COMM_STAT status;
-short beacon_on=0, beacon_flag=0;
+short beacon_on=0, beacon_flag=0,data_mode=TX_DATA_BUFFER;
+unsigned char data_seed;
 CTL_EVENT_SET_t COMM_evt;
 unsigned char Tx1Buffer[600];
 unsigned char RxBuffer[600], RxTemp[30];
@@ -68,54 +66,10 @@ void sub_events(void *p) __toplevel{
       type=arcBus_stat.spi_stat.rx[0];
       src=arcBus_stat.spi_stat.rx[1];
       printf("SPI: type = 0x%02x, src = 0x%02x\r\n",type, src);
-      printf("Trying to send beacon ON = %d FLAG = %d\r\n",beacon_on, beacon_flag);
       //PrintBuffer(arcBus_stat.spi_stat.rx, arcBus_stat.spi_stat.len);  //TEST
 
-      switch(type){
-      case SPI_BEACON_DAT:
-        if(!beacon_on){
          BUS_free_buffer_from_event();
-         break;
-        }
-        for(i=0;i<COMM_TXHEADER_LEN;i++){                                           //LOAD UP HEADER
-          Tx1Buffer[i]=__bit_reverse_char(Tx1_Header[i]);                             //AX.25 octets are sent LSB first
-        }
-
-        if(!beacon_flag){                                                            //SEND HELLO MESSAGE
-          Tx1Buffer_Len=COMM_TXHEADER_LEN+sizeof(Hello)+1;                            //Set length of message
-          for(i=0;i<sizeof(Hello);i++){                 
-            Tx1Buffer[i+COMM_TXHEADER_LEN]=__bit_reverse_char(Hello[i]);              //load message after header
-          }
-        } else {                                                                    //SEND STATUS MESSAGE
-          Tx1Buffer_Len=COMM_TXHEADER_LEN+(arcBus_stat.spi_stat.len)+1;               //Set length of message: HeaderLen+(arcbusLen)+1 for carriage return
-          for(i=0;i<arcBus_stat.spi_stat.len;i++) {                                   //load message after header
-            Tx1Buffer[i+COMM_TXHEADER_LEN]=__bit_reverse_char(arcBus_stat.spi_stat.rx[i]);
-          }
-        }
-        Tx1Buffer[Tx1Buffer_Len-1]=__bit_reverse_char(COMM_CR);                     //Add carriage return
-        
-        BUS_free_buffer_from_event();                                               //Free Buffer before call to Stuff_Transition_Scramble()
-
-        //**** Create AX.25 packet (needs to include FCS, bit stuffed, flags) ***
-        printf("Tx1Buffer_Len=%d  COMM_TXHEADER_LEN=%d\r\n", Tx1Buffer_Len,COMM_TXHEADER_LEN);
-//        PrintBufferBitInv(Tx1Buffer, Tx1Buffer_Len);                              //THIS IS FOR TESTING ONLY
-
-        CRC_CCITT_Generator(Tx1Buffer, &Tx1Buffer_Len);                           //Generate FCS
-        Stuff_Transition_Scramble(Tx1Buffer, &Tx1Buffer_Len);                     //Bit stuff - Encode for transitions - Scramble data
-        ctl_events_set_clear(&COMM_evt,CC1101_EV_TX_START,0);                     //Send to Radio to transmit
-        break;
-      //other data, write to SD card
-      default:
-        //write data to SD card
-        writeSD_Data(src,type,arcBus_stat.spi_stat.rx+2);
-        if(src==BUS_ADDR_IMG && *(unsigned short*)(arcBus_stat.spi_stat.rx+2) == 0x990F){
-          IMG_Blk = arcBus_stat.spi_stat.rx[5];
-        }
-        ctl_events_set_clear(&ev_SPI_data,SPI_EV_DATA_REC,0);
-        //free buffer
-        BUS_free_buffer_from_event();
-        break;
-      }
+       
     }
 
     if(e&SUB_EV_SPI_ERR_CRC){
@@ -128,6 +82,22 @@ void sub_events(void *p) __toplevel{
   }
 }
 
+//gen data for transmit , random or pattern  
+unsigned char tx_data_gen(unsigned char *dest,unsigned short size,int mode,unsigned char seed){
+  int i;
+  for(i=0;i<=size;i++){
+    switch(mode){
+      case TX_DATA_PATTERN:  //101... packet 
+              dest[i]=seed;  // uses seed as patten              
+      break;
+      case TX_DATA_RANDOM:  //rand packet 
+        seed=(seed>>1)^(-(seed&1)&0xB8);
+        dest[i]=seed;
+      break;
+    }
+  }
+  return seed;
+}
 
 //handle COMM specific commands don't wait here.
 int SUB_parseCmd(unsigned char src, unsigned char cmd, unsigned char *dat, unsigned short len){
@@ -145,6 +115,7 @@ void COMM_events(void *p) __toplevel{
   unsigned int e, count;
   int i, resp; 
 
+
   //initialize status
     Reset_Radio(CC1101);                         // Reset Radios
 
@@ -161,10 +132,6 @@ void COMM_events(void *p) __toplevel{
   // After RF on command we can send Beacon data.
   // Would like to create some test here where we read radio status and make sure it is in the correct state.
 
-
-  //read SD card and determine the number of bytes stored
-  data_setup();
-
   ctl_events_init(&COMM_evt,0);                 //Initialize Event
 
   //endless loop
@@ -175,9 +142,26 @@ void COMM_events(void *p) __toplevel{
     //update status
     if(e&COMM_EVT_STATUS_REQ){
        status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101);
-       status.ACDS_data=sd_data_table.next_ACDS;	//#ACDS packets in COMM SD card
-       status.LEDL_data=sd_data_table.next_LEDL;   	//#LEDL packets in COMM SD card
-       status.IMG_data=sd_data_table.next_IMG;
+
+       //check radio status
+      if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101) == 0x11)       // Check for RX FIFO overflow, if yes then flush dat buffer
+      {
+        Radio_Strobe(TI_CCxxx0_SFRX,CC1101); // do I need this?
+        __delay_cycles(16000);              //what is the delay for?
+        printf("Overflow Error, RX FIFO flushed, radio state now: ");
+        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101));
+      }
+
+      if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101) == 0x16)       // Check for TX FIFO underflow, if yes then flush dat buffer
+      {
+        Radio_Strobe(TI_CCxxx0_SFTX,CC1101);
+        __delay_cycles(16000);              //what is the delay for?
+        printf("Underflow Error, TX FIFO flushed, radio state now: ");
+        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101));
+      }
+      //make sure radio is in receive mode
+      Radio_Strobe(TI_CCxxx0_SRX,CC1101);
+
     }
 
     if(e & CC1101_EV_RX_READ){                  //READ RX FIFO
@@ -186,7 +170,6 @@ void COMM_events(void *p) __toplevel{
       // Need to read RXThrBytes into RXBuffer then move RxBufferPos by RxThrBytes
       // Then wait until interrupt received again.
         Radio_Read_Burst_Registers(TI_CCxxx0_RXFIFO, RxTemp, RxThrBytes, CC1101);
-        Reverse_Scramble_Transition_Stuff(RxTemp, RxThrBytes);
         status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101);
         //printf("Radio State: 0x%02x \n\r", status.CC1101);
     }
@@ -204,6 +187,14 @@ void COMM_events(void *p) __toplevel{
 // If packet is > 256 then radio set up as INFINITE.
 // If packet is > 64 and < 256 then radio is set up as Fixed Mode
 // If packet is < 64 then radio is set up as Fixed Mode
+/*
+      if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101) == 0x11)       // Check for RX FIFO overflow, if yes then flush dat buffer
+      {
+        Radio_Strobe(TI_CCxxx0_SFRX,CC1101); // do I need this?
+        __delay_cycles(16000);              //what is the delay for?
+        printf("Overflow Error, RX FIFO flushed, radio state now: ");
+        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101));
+      }
 
       if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101) == 0x16)       // Check for TX FIFO underflow, if yes then flush dat buffer
       {
@@ -213,34 +204,43 @@ void COMM_events(void *p) __toplevel{
         printf("Underflow Error, TX FIFO flushed, radio state now: ");
         printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101));
       }
+*/
+      if(data_mode==TX_DATA_BUFFER){
+        TxBytesRemaining = Tx1Buffer_Len;
 
-      TxBytesRemaining = Tx1Buffer_Len;
-
-      if(TxBytesRemaining > 64)
-      {
-        if(TxBytesRemaining > 256)
+        if(TxBytesRemaining > 64)
         {
-          Radio_Write_Registers(TI_CCxxx0_PKTLEN, (Tx1Buffer_Len % 256), CC1101); // Pre-program the packet length
-          Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x02, CC1101);                // Infinite byte mode
+          if(TxBytesRemaining > 256)
+          {
+            Radio_Write_Registers(TI_CCxxx0_PKTLEN, (Tx1Buffer_Len % 256), CC1101); // Pre-program the packet length
+            Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x02, CC1101);                // Infinite byte mode
+          }
+          else
+          {
+            Radio_Write_Registers(TI_CCxxx0_PKTLEN, Tx1Buffer_Len, CC1101);  // Pre-program packet length
+            Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x00, CC1101);         // Fixed byte mode
+          }
+          Radio_Write_Burst_Registers(TI_CCxxx0_TXFIFO, Tx1Buffer+TxBufferPos, 64, CC1101); // Write first 64 TX data bytes to TX FIFO
+          TxBytesRemaining = TxBytesRemaining - 64;
+          TxBufferPos = TxBufferPos + 64;
+          state = TX_RUNNING;
         }
         else
         {
           Radio_Write_Registers(TI_CCxxx0_PKTLEN, Tx1Buffer_Len, CC1101);  // Pre-program packet length
           Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x00, CC1101);         // Fixed byte mode
+          Radio_Write_Burst_Registers(TI_CCxxx0_TXFIFO, Tx1Buffer+TxBufferPos, Tx1Buffer_Len, CC1101); // Write TX data
+          TxBytesRemaining = 0;
+          TxBufferPos = TxBufferPos+Tx1Buffer_Len;
+          state = TX_END;
         }
-        Radio_Write_Burst_Registers(TI_CCxxx0_TXFIFO, Tx1Buffer+TxBufferPos, 64, CC1101); // Write first 64 TX data bytes to TX FIFO
-        TxBytesRemaining = TxBytesRemaining - 64;
-        TxBufferPos = TxBufferPos + 64;
-        state = TX_RUNNING;
-      }
-      else
-      {
-        Radio_Write_Registers(TI_CCxxx0_PKTLEN, Tx1Buffer_Len, CC1101);  // Pre-program packet length
-        Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x00, CC1101);         // Fixed byte mode
-        Radio_Write_Burst_Registers(TI_CCxxx0_TXFIFO, Tx1Buffer+TxBufferPos, Tx1Buffer_Len, CC1101); // Write TX data
-        TxBytesRemaining = 0;
-        TxBufferPos = TxBufferPos+Tx1Buffer_Len;
-        state = TX_END;
+      }else{
+          Radio_Write_Registers(TI_CCxxx0_PKTLEN, 1, CC1101); // Pre-program the packet length
+          Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x02, CC1101);                // Infinite byte mode
+          //fill buffer with data
+          data_seed=tx_data_gen(Tx1Buffer,64,data_mode,data_seed);
+          Radio_Write_Burst_Registers(TI_CCxxx0_TXFIFO, Tx1Buffer, 64, CC1101); // Write first 64 TX data bytes to TX FIFO
+          state = TX_RUNNING;
       }
 
       Radio_Strobe(TI_CCxxx0_STX, CC1101);                                                  // Set radio state to Tx
@@ -252,22 +252,30 @@ void COMM_events(void *p) __toplevel{
       // Entering here indicates that the TX FIFO has emptied to below TX threshold.
       // Need to write TXThrBytes (30 bytes) from TXBuffer then move TxBufferPos by TxThrBytes
       // Then wait until interrupt received again or go to TX_END.
-
-	if(TxBytesRemaining > TxThrBytes)
-        {
-	   Radio_Write_Burst_Registers(TI_CCxxx0_TXFIFO, Tx1Buffer+TxBufferPos, TxThrBytes, CC1101);
-           TxBufferPos += TxThrBytes;
-           TxBytesRemaining = TxBytesRemaining - TxThrBytes;
-           state = TX_RUNNING;
+      if(data_mode==TX_DATA_BUFFER){
+          if(TxBytesRemaining > TxThrBytes)
+          {
+             Radio_Write_Burst_Registers(TI_CCxxx0_TXFIFO, Tx1Buffer+TxBufferPos, TxThrBytes, CC1101);
+             TxBufferPos += TxThrBytes;
+             TxBytesRemaining = TxBytesRemaining - TxThrBytes;
+             state = TX_RUNNING;
+          }
+          else
+          {
+             Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x00, CC1101); // Enter fixed length mode to transmit the last of the bytes
+             Radio_Write_Burst_Registers(TI_CCxxx0_TXFIFO, Tx1Buffer+TxBufferPos, TxBytesRemaining, CC1101);
+             TxBufferPos += TxBytesRemaining;
+             TxBytesRemaining = 0;
+             state = TX_END;
+          }
         }
-        else
+        else 
         {
-           Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x00, CC1101); // Enter fixed length mode to transmit the last of the bytes
-           Radio_Write_Burst_Registers(TI_CCxxx0_TXFIFO, Tx1Buffer+TxBufferPos, TxBytesRemaining, CC1101);
-           TxBufferPos += TxBytesRemaining;
-           TxBytesRemaining = 0;
-           state = TX_END;
+         data_seed=tx_data_gen(Tx1Buffer,TxThrBytes,data_mode,data_seed);
+         Radio_Write_Burst_Registers(TI_CCxxx0_TXFIFO, Tx1Buffer, TxThrBytes, CC1101);
+         state = TX_RUNNING;
         }
+       
         //printf("TX THR TxBytesRemaining = %d\r\n", TxBytesRemaining); 
     }
           
@@ -301,7 +309,6 @@ void COMM_events(void *p) __toplevel{
       }
 
       // Toggle LED to indicate packet sent
-      ctl_events_set_clear(&ev_SPI_data,SPI_EV_DATA_TX,0);
       P7OUT ^= BIT7;
     }
 
@@ -326,7 +333,6 @@ void COMM_events(void *p) __toplevel{
 
 
    } //end for loop
-
 }
 
 void COMM_Setup(void){

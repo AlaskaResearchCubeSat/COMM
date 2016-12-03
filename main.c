@@ -1,6 +1,6 @@
-//COMM FLIGHT
-//Denise Thorsen
-//2015-1-3
+//ARC-2-COMM FLIGHT
+//Chic O'Dell
+//2017
 
 #include <string.h>
 #include <ctl_api.h>

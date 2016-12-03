@@ -4,8 +4,7 @@
 //Code for prototype Communication System for the Alaska Research CubeSat (ARC) as developed by the Alaska Space Grant Program
 //Samuel Vanderwaal, APril 2012
 
-#define CS_1101 BIT4 //BIT5 on Engineering board BIT4 on dev board daughter board!!!
-#define CS_2500 BIT5 //BIT4 on Engineering board BIT5 on dev board daughter board!!!
+
 #define CS_TEMP1 BIT6
 #define CS_TEMP2 BIT7
 
@@ -15,20 +14,37 @@
 
 #define RADIO_PINS_SPI (RADIO_PIN_SOMI | RADIO_PIN_SIMO | RADIO_PIN_SCK)
 
+//crystal frequency for radio CC1101 
+#define RF_OSC_F 26000000
+
 #define IDLE         0
 #define TX_START     1
 #define TX_RUNNING   2
 #define TX_END       3
 #define RX_START     4
 #define RX_RUNNING   5
-#define CC1101_GDO0  BIT0  
-#define CC1101_GDO2  BIT1  //BIT2 on Engineering board BIT1 on dev board daughter board!!!
-#define CC2500_GDO0  BIT2  //BIT3 on Engineering board BIT2 on dev board daughter board!!!
-#define CC2500_GDO2  BIT3  //BIT4 on Engineering board BIT3 on dev board daughter board!!!
+
+#ifndef DEV_BUILD
+  //defines for COM board build
+  #define CS_1101 BIT4  //BIT5 on Engineering board BIT4 on dev board daughter board!!!
+  #define CS_2500 BIT5 //BIT4 on Engineering board BIT5 on dev board daughter board!!!
+  #define CC1101_GDO0  BIT0  
+  #define CC1101_GDO2  BIT1  //BIT2 on Engineering board BIT1 on dev board daughter board!!!
+  #define CC2500_GDO0  BIT2  //BIT3 on Engineering board BIT2 on dev board daughter board!!!
+  #define CC2500_GDO2  BIT3  //BIT4 on Engineering board BIT3 on dev board daughter board!!!
+#else
+  //defines for DEV board build
+  #define CS_1101 BIT4 //BIT5 on Engineering board BIT4 on dev board daughter board!!!
+  #define CS_2500 BIT5 //BIT4 on Engineering board BIT5 on dev board daughter board!!!
+  #define CC1101_GDO0  BIT0  
+  #define CC1101_GDO2  BIT1  //BIT2 on Engineering board BIT1 on dev board daughter board!!!
+  #define CC2500_GDO0  BIT2  //BIT3 on Engineering board BIT2 on dev board daughter board!!!
+  #define CC2500_GDO2  BIT3  //BIT4 on Engineering board BIT3 on dev board daughter board!!!
+#endif
 #define RF_SW1       BIT0
 #define RF_SW2       BIT1
 
-enum{CC1101=0, CC2500};
+enum{CC1101=0, CC2500=1};
 //Create event flags for the radios
 #define TxThrBytes 30   
 #define RxThrBytes 30
@@ -39,15 +55,16 @@ void radio_interrupts(void);
 void Build_Packet(int);
 void TI_CC_Wait(unsigned int);
 void Reset_Radio(char);
-void Radio_Strobe(char, char);
+char Radio_Strobe(char, char);
 void Radio_Write_Registers(char addr, char value, char radio);
-void Radio_Write_Burst_Registers(char, unsigned char *, int, char);
-void Radio_Read_Burst_Registers(char, unsigned char *, int, char);
+void Radio_Write_Burst_Registers(char,unsigned char *, int, char);
+void Radio_Read_Burst_Registers(char,unsigned char *, int, char);
 char Radio_Read_Status(char addr, char radio);
 char RF_Receive_Packet(char *, char *, char);
 char Radio_Read_Registers(char addr, char radio);
 void RF_Send_Packet(unsigned char *txBuffer, int size, char radio);
 void Write_RF_Settings(char);
+void radio_init(void);
 
 //Definitions for CC2500 (also CC1100?) Registers
 

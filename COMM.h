@@ -14,6 +14,9 @@ extern short beacon_on, beacon_flag;
 
   #define COMM_EVT_ALL (CC1101_EV_RX_READ|CC1101_EV_TX_START|CC1101_EV_TX_THR|CC1101_EV_TX_END|COMM_EVT_IMG_DAT|COMM_EVT_LEDL_DAT|COMM_EVT_STATUS_REQ|COMM_EVT_GS_DECODE)
 
+  //data transmit types
+  enum{TX_DATA_BUFFER=0,TX_DATA_RANDOM,TX_DATA_PATTERN};
+
   //command table for GS commands
 enum{COMM_RF_OFF=0x00, COMM_RF_ON=0xFF, COMM_BEACON_STATUS=0x0F, COMM_BEACON_HELLO=0xF0, COMM_RESET_CDH=0x33, COMM_GET_DATA=0xAA, COMM_SEND_DATA=0x55};
 
@@ -29,6 +32,9 @@ enum{COMM_RF_OFF=0x00, COMM_RF_ON=0xFF, COMM_BEACON_STATUS=0x0F, COMM_BEACON_HEL
 
   extern COMM_STAT status;
 
+  extern unsigned char data_seed;
+
+  extern short data_mode;
   //flags for STAT_PACKET
 
   //parse events from the bus for the subsystem
