@@ -1,6 +1,6 @@
 <!DOCTYPE CrossStudio_Project_File>
-<solution Name="COMM Daughter Board Code" target="9" version="2">
-  <project Name="COMM Daughter Board Code">
+<solution Name="COMM R3" target="9" version="2">
+  <project Name="COMM R3">
     <configuration
       Name="Common"
       Platform="MSP430"

@@ -59,7 +59,7 @@ void sub_events(void *p) __toplevel{
 // ******************* RECEIVING DATA OVER SPI *************************
     if(e&SUB_EV_SPI_DAT){
       puts("SPI data recived:\r");
-      status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE, CC2500_1);
+      status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500);
       printf("status.CC1101 = 0X%02X \r\n",status.CC1101);
       //First byte contains data type
       //Second byte contains sender address
@@ -123,21 +123,21 @@ void COMM_events(void *p) __toplevel{
   unsigned int e, count;
   int i, resp; 
 // NOTE should we clear flags or does rest do this ? 
-    Reset_Radio(CC2500_1);                 // Reset Radios/initialize status
-    Reset_Radio(CC2500_2);                 // Reset Radios/initialize status
+    Reset_Radio(CC1101);                 // Reset Radios/initialize status
+    Reset_Radio(CC2500);                 // Reset Radios/initialize status
 
 
   __delay_cycles(800);                         // Wait for radio to be ready before writing registers.cc1101.pdf Table 13 indicates a power-on start-up time of 150 us for the crystal to be stable
                                                // After reset chip is in IDLE state
-  Write_RF_Settings(CC2500_1);             // Write radios Settings
-  Write_RF_Settings(CC2500_2);             // Write radios Settings
+  Write_RF_Settings(CC1101);             // Write radios Settings
+  Write_RF_Settings(CC2500);             // Write radios Settings
 
   //Radio_Write_Burst_Registers(TI_CCxxx0_PATABLE, paTable_CC1101, paTableLen, CC1101);
   Radio_Interrupt_Setup();
     
   //TODO Need to set up two radio setups. Might have to have them done separtely  
-  Radio_Strobe(TI_CCxxx0_SRX, CC2500_1);          //Initialize CCxxxx in Rx mode
-  Radio_Strobe(TI_CCxxx0_SRX, CC2500_2);          //Initialize CCxxxx in Rx mode
+  Radio_Strobe(TI_CCxxx0_SRX, CC1101);          //Initialize CCxxxx in Rx mode
+  Radio_Strobe(TI_CCxxx0_SRX, CC2500);          //Initialize CCxxxx in Rx mode
 
   ctl_events_init(&COMM_evt,0);                 //Initialize Event
 
@@ -149,7 +149,7 @@ void COMM_events(void *p) __toplevel{
     //******************************************************************************************* COMM_EVT_STATUS_REQ
     if(e&COMM_EVT_STATUS_REQ){
 //TODO fix this for multiple radios and figure out if it needs to be used 
-/*        status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101); 
+       status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101); 
        //check radio status
       if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101) == 0x11)       // Check for RX FIFO overflow, if yes then flush dat buffer
       {
@@ -167,41 +167,24 @@ void COMM_events(void *p) __toplevel{
         printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101));
       } 
       //make sure radio is in receive mode
-      Radio_Strobe(TI_CCxxx0_SRX,CC1101); */
+      Radio_Strobe(TI_CCxxx0_SRX,CC1101);
 
-        status.CC2500_1 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_1);
+        status.CC2500 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500);
                //check radio status
-      if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_1) == 0x11)       // Check for RX FIFO overflow, if yes then flush dat buffer  CC2500_1
+      if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500) == 0x11)       // Check for RX FIFO overflow, if yes then flush dat buffer  CC2500
       {
-        Radio_Strobe(TI_CCxxx0_SFRX,CC2500_1); // do I need this?
+        Radio_Strobe(TI_CCxxx0_SFRX,CC2500); // do I need this?
         __delay_cycles(16000);              //what is the delay for?
         printf("Overflow Error, RX FIFO flushed, radio state now: ");
-        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_1));
+        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500));
       }
 
-      if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_1) == 0x16)       // Check for TX FIFO underflow, if yes then flush dat buffer
+      if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500) == 0x16)       // Check for TX FIFO underflow, if yes then flush dat buffer
       {
-        Radio_Strobe(TI_CCxxx0_SFTX,CC2500_1);
+        Radio_Strobe(TI_CCxxx0_SFTX,CC2500);
         __delay_cycles(16000);              //what is the delay for?
         printf("Underflow Error, TX FIFO flushed, radio state now: ");
-        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_1));
-      }
-        status.CC2500_2 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_2);
-               //check radio status
-      if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_2) == 0x11)       // Check for RX FIFO overflow, if yes then flush dat buffer   CC2500_2
-      {
-        Radio_Strobe(TI_CCxxx0_SFRX,CC2500_2); // do I need this?
-        __delay_cycles(16000);              //what is the delay for?
-        printf("Overflow Error, RX FIFO flushed, radio state now: ");
-        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_2));
-      }
-
-      if (Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_2) == 0x16)       // Check for TX FIFO underflow, if yes then flush dat buffer
-      {
-        Radio_Strobe(TI_CCxxx0_SFTX,CC2500_2);
-        __delay_cycles(16000);              //what is the delay for?
-        printf("Underflow Error, TX FIFO flushed, radio state now: ");
-        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_2));
+        printf("%x \r\n",Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500));
       }
     }
   //******************************************************************************************* COMM_EVT_CC1101_RX_READ
@@ -380,13 +363,13 @@ void COMM_events(void *p) __toplevel{
 
 */
 
-  //******************************************************************************************* COMM_EVT_CC2500_1_RX_READ
-    if(e & COMM_EVT_CC2500_1_RX_READ){                  //READ RX FIFO
+  //******************************************************************************************* COMM_EVT_CC2500_RX_READ
+    if(e & COMM_EVT_CC2500_RX_READ){                  //READ RX FIFO
       // Triggered by GDO0 interrupt     
       // Entering here indicates that the RX FIFO is more than half filed.
       // Need to read RXThrBytes into RXBuffer then move RxBufferPos by RxThrBytes
       // Then wait until interrupt received again.
-      radio_select = CC2500_1;  // sel radio
+      radio_select = CC2500;  // sel radio
       P7OUT |= BIT4; // debug LED
 
         Radio_Read_Burst_Registers(TI_CCxxx0_RXFIFO, RxTemp, RxThrBytes, radio_select);
@@ -394,11 +377,11 @@ void COMM_events(void *p) __toplevel{
         P7OUT^=BIT0;  // flash LED on rx 
         //printf("Radio State: 0x%02x \n\r", status.CC1101);
     }
-  //******************************************************************************************* COMM_EVT_CC2500_1_TX_START
-    if(e&COMM_EVT_CC2500_1_TX_START){                 //INITIALIZE TX START
+  //******************************************************************************************* COMM_EVT_CC2500_TX_START
+    if(e&COMM_EVT_CC2500_TX_START){                 //INITIALIZE TX START
       state = TX_START; 
       TxBufferPos = 0;
-      radio_select = CC2500_1;  // sel radio
+      radio_select = CC2500;  // sel radio
       P7OUT |= BIT1; // debug LED
       Tx1Buffer_Len = sizeof(Packet_NoBit); // TODO make this work ! 
 // Switch on the length of the initial packet.  
@@ -464,14 +447,14 @@ void COMM_events(void *p) __toplevel{
       Radio_Strobe(TI_CCxxx0_STX, radio_select);                                                  // Set radio state to Tx
    }
 
-  //******************************************************************************************* COMM_EVT_CC2500_1_TX_THR
-    if(e & COMM_EVT_CC2500_1_TX_THR)
+  //******************************************************************************************* COMM_EVT_CC2500_TX_THR
+    if(e & COMM_EVT_CC2500_TX_THR)
     {
       //printf("TX THR TxBytesRemaining = %d\r\n", TxBytesRemaining);        
       // Entering here indicates that the TX FIFO has emptied to below TX threshold.
       // Need to write TXThrBytes (30 bytes) from TXBuffer then move TxBufferPos by TxThrBytes
       // Then wait until interrupt received again or go to TX_END.
-      radio_select = CC2500_1;  // sel radio
+      radio_select = CC2500;  // sel radio
       P7OUT |= BIT2; // debug LED
 
       if(data_mode==TX_DATA_BUFFER){
@@ -499,18 +482,18 @@ void COMM_events(void *p) __toplevel{
         }
     }
 
-  //******************************************************************************************* COMM_EVT_CC2500_1_TX_END        
-    if(e & COMM_EVT_CC2500_1_TX_END)
+  //******************************************************************************************* COMM_EVT_CC2500_TX_END        
+    if(e & COMM_EVT_CC2500_TX_END)
     {
       // Entering here indicates that the TX FIFO has emptied to the last byte sent
       // No more bytes to send.
       // Need to change interrupts.     
-      radio_select = CC2500_1;  
+      radio_select = CC2500;  
       P7OUT |= BIT3;// debug LED
 
       ctl_timeout_wait(ctl_get_current_time()+26);  //25 ms delay to flush 30 possible remaining bytes.  Before we turn off power amplifier
-     P1IE &= ~CC2500_1_GDO2;                         // Disable Port 2 GDO2 interrupt
-     P1IFG &= ~CC2500_1_GDO2;                        // Clear flag
+     P1IE &= ~CC2500_GDO2;                         // Disable Port 2 GDO2 interrupt
+     P1IFG &= ~CC2500_GDO2;                        // Clear flag
 
       while (Radio_Read_Status(TI_CCxxx0_MARCSTATE,radio_select) == 0x13) // 0x13 is TX mode
       {
@@ -536,20 +519,7 @@ void COMM_events(void *p) __toplevel{
     }
 
     // TODO add in and fix once we get one radio transmitting and receiving. 
-      //******************************************************************************************* COMM_EVT_CC2500_2_RX_READ
-    if(e & COMM_EVT_CC2500_2_RX_READ){                  //READ RX FIFO
-      // Triggered by GDO0 interrupt     
-      // Entering here indicates that the RX FIFO is more than half filed.
-      // Need to read RXThrBytes into RXBuffer then move RxBufferPos by RxThrBytes
-      // Then wait until interrupt received again.
-      radio_select = CC2500_2;  // sel radio
-
-        Radio_Read_Burst_Registers(TI_CCxxx0_RXFIFO, RxTemp, RxThrBytes, radio_select);
-        status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,radio_select);
-        P7OUT|=BIT7;  // flash LED on rx 
-        //printf("Radio State: 0x%02x \n\r", status.CC1101);
-    } 
- } //end for loop
+ } //end for loop                                                                                                           
  
 }
 
@@ -584,9 +554,9 @@ void Radio_Interrupt_Setup(void){ // Enable RX interrupts only!  TX interrupt en
   // Use GDO0 and GDO2 as interrupts to control TX/RX of radio
   P1DIR = 0;			        // Port 1 configured as inputs (i.e. GDO0 and GDO2 are inputs)
   P1IES = 0;
-  P1IES |= CC2500_1_GDO2; // GDO0 interrupts on rising edge = 0 (RX), GDO2 interrupts on falling edge = 1 (TX) 
+  P1IES |= CC2500_GDO2; // GDO0 interrupts on rising edge = 0 (RX), GDO2 interrupts on falling edge = 1 (TX) 
   P1IFG = 0;// Clear all flags <-- do this after IES as it will set a BIT2 high (pg 413 fam)
-  P1IE |= CC2500_1_GDO0 | CC2500_1_GDO2; // Enable GDO0 interrupt only (RX interrupt) add this back after single TX works CC2500_2_GDO0
+  P1IE |= CC2500_GDO0 | CC2500_GDO2; // Enable GDO0 interrupt only (RX interrupt) add this back after single TX works 
 }
 
 
@@ -595,12 +565,12 @@ void Port1_ISR (void) __ctl_interrupt[PORT1_VECTOR]{
     //reading automatically resets the flag for the returned state
     switch(P1IV){
 // RADIO 1 interrupts
-       case P1IV_P1IFG0: // [GDO0_1] is set up to assert when RX FIFO is greater than FIFO_THR.  This is an RX function only
-            ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_1_RX_READ,0);
+       case P1IV_P1IFG1: // [GDO0_1] is set up to assert when RX FIFO is greater than FIFO_THR.  This is an RX function only
+            ctl_events_set_clear(&COMM_evt,COMM_EVT_CC1101_RX_READ,0);
 
         break;
     // TX state
-        case P1IV_P1IFG1: //[GDO2_1]is set up to assert when TX FIFO is above FIFO_THR threshold.  
+        case P1IV_P1IFG2: //[GDO2_1]is set up to assert when TX FIFO is above FIFO_THR threshold.  
     // Actual interrupt SR                
             switch(state)
             {
@@ -611,16 +581,16 @@ void Port1_ISR (void) __ctl_interrupt[PORT1_VECTOR]{
                 case TX_START:  //Called on falling edge of GDO2, Tx FIFO < threshold, Radio in TX mode, Packet in progress
                       state = TX_RUNNING;
                       P7OUT |= BIT3;
-                      ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_1_TX_THR,0); 
+                      ctl_events_set_clear(&COMM_evt,COMM_EVT_CC1101_TX_THR,0); 
                      break;
                 
                 case TX_RUNNING: //Called on falling edge of GDO2, Tx FIFO < threshold, Radio in TX mode, Packet in progress
-                      ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_1_TX_THR,0); 
+                      ctl_events_set_clear(&COMM_evt,COMM_EVT_CC1101_TX_THR,0); 
                      break;
 
                 case TX_END:  //Called on falling edge of GDO2, Tx FIFO < threshold, Radio in TX mode, Last part of packet to transmit
                      state = IDLE;
-                      ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_1_TX_END,0);
+                      ctl_events_set_clear(&COMM_evt,COMM_EVT_CC1101_TX_END,0);
 
                      break;
 
@@ -629,13 +599,13 @@ void Port1_ISR (void) __ctl_interrupt[PORT1_VECTOR]{
             }
         break;
 // Radio CC2500_2 interrupts
-        case P1IV_P1IFG2: // [GDO0_2] is set up to assert when RX FIFO is greater than FIFO_THR.  This is an RX function only
-           ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_2_RX_READ,0);
+        case P1IV_P1IFG3: // [GDO0_2] is set up to assert when RX FIFO is greater than FIFO_THR. see if the flag will reset if we use CC1101_GDO0_IV ?
+           ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_RX_READ,0);
            P7OUT ^= BIT7;
 
         break; 
     //TX state
-        case P1IV_P1IFG3: //[GDO2_2] is set up to assert when TX FIFO is above FIFO_THR threshold.  
+        case P1IV_P1IFG4: //[GDO2_2] is set up to assert when TX FIFO is above FIFO_THR threshold.  
                                  //Interrupts on falling edge, i.e. when TX FIFO falls below FIFO_THR
 
     // Actual interrupt SR
@@ -646,17 +616,17 @@ void Port1_ISR (void) __ctl_interrupt[PORT1_VECTOR]{
 
                 case TX_START:  //Called on falling edge of GDO2, Tx FIFO < threshold, Radio in TX mode, Packet in progress
                       state = TX_RUNNING;
-                      //ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_2_TX_THR,0); 
+                      ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_TX_THR,0); 
 
                      break;
                 
                 case TX_RUNNING: //Called on falling edge of GDO2, Tx FIFO < threshold, Radio in TX mode, Packet in progress
-                      //ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_2_TX_THR,0); 
+                      ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_TX_THR,0); 
 
                      break;
                 case TX_END:  //Called on falling edge of GDO2, Tx FIFO < threshold, Radio in TX mode, Last part of packet to transmit
                      state = IDLE;
-                     // ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_2_TX_END,0);
+                     ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_TX_END,0);
 
                      break;
                 default:
