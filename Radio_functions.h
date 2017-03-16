@@ -1,20 +1,26 @@
 #ifndef __Radio_functions_H
 #define __Radio_functions_H
 
-//Code for prototype Communication System for the Alaska Research CubeSat (ARC) as developed by the Alaska Space Grant Program
-//Samuel Vanderwaal, APril 2012
 
+//Radio Pins for SPI 
+//for ARC2 change these defines for ARC2 ICD compliance 
+#define RADIO_PIN_SIMO BIT2 
+#define RADIO_PIN_SOMI BIT4 
+#define RADIO_PIN_SCK  BIT3 
 
-#define CS_TEMP1 BIT6
-#define CS_TEMP2 BIT7
+//Port Mapping Pins for SPI
+#define RADIO_PMAP_SIMO     P4MAP2
+#define RADIO_PMAP_SOMI     P4MAP4
+#define RADIO_PMAP_UCLK     P4MAP3
 
-#define RADIO_PIN_SIMO BIT1
-#define RADIO_PIN_SOMI BIT2
-#define RADIO_PIN_SCK  BIT3
+//port mapping values
+#define RADIO_PM_SIMO     PM_UCB1SIMO
+#define RADIO_PM_SOMI     PM_UCB1SOMI
+#define RADIO_PM_UCLK     PM_UCB1CLK
 
 #define RADIO_PINS_SPI (RADIO_PIN_SOMI | RADIO_PIN_SIMO | RADIO_PIN_SCK)
 
-//crystal frequency for radio CC1101 
+//crystal frequency for radio CC2500
 #define RF_OSC_F 26000000
 
 #define IDLE         0
@@ -24,27 +30,24 @@
 #define RX_START     4
 #define RX_RUNNING   5
 
-#ifndef DEV_BUILD
-  //defines for COM board build
-  #define CS_1101 BIT4  //BIT5 on Engineering board BIT4 on dev board daughter board!!!
-  #define CS_2500 BIT5 //BIT4 on Engineering board BIT5 on dev board daughter board!!!
-  #define CC1101_GDO0  BIT0  
-  #define CC1101_GDO2  BIT1  //BIT2 on Engineering board BIT1 on dev board daughter board!!!
-  #define CC2500_GDO0  BIT2  //BIT3 on Engineering board BIT2 on dev board daughter board!!!
-  #define CC2500_GDO2  BIT3  //BIT4 on Engineering board BIT3 on dev board daughter board!!!
-#else
-  //defines for DEV board build
-  #define CS_1101 BIT4 //BIT5 on Engineering board BIT4 on dev board daughter board!!!
-  #define CS_2500 BIT5 //BIT4 on Engineering board BIT5 on dev board daughter board!!!
-  #define CC1101_GDO0  BIT0  
-  #define CC1101_GDO2  BIT1  //BIT2 on Engineering board BIT1 on dev board daughter board!!!
-  #define CC2500_GDO0  BIT2  //BIT3 on Engineering board BIT2 on dev board daughter board!!!
-  #define CC2500_GDO2  BIT3  //BIT4 on Engineering board BIT3 on dev board daughter board!!!
-#endif
-#define RF_SW1       BIT0
-#define RF_SW2       BIT1
+//defines for COMM Daughter board build
+#define CS_2500_1           BIT1  //BIT1 dev board daughter board!!!
+#define CS_2500_2           BIT2 //BIT2 dev board daughter board!!!  #define CC2500_1_GDO0  BIT0  //BIT0 on dev board daughter board!!!
 
-enum{CC1101=0, CC2500=1};
+#define CC2500_1_GDO0       BIT0  //P1.0
+#define CC2500_1_GDO2       BIT1  //P1.1
+#define CC2500_2_GDO0       BIT2  //P1.2
+#define CC2500_2_GDO2       BIT3  //P1.3
+
+//P1IV definitions. These MUST match to the pins above!!!!!
+#define CC2500_1_GDO0_IV    P1IV_P1IFG0  //inturupt on P1.0
+#define CC2500_1_GDO2_IV    P1IV_P1IFG1  //inturupt on P1.1
+#define CC2500_2_GDO0_IV    P1IV_P1IFG2  //inturupt on P1.2
+#define CC2500_2_GDO2_IV    P1IV_P1IFG3  //inturupt on P1.3
+
+enum power_level{power1=-55,power2=-30, power3= -28, power4 = -26, power5 = -24, power6 =-22, power7=-20, power8=-18, power9=-16,power10=-14,power11=12, power12=-10, power13=-8, power14=-6, power15=-4, power16=-2, power17=0, power18=1};
+
+enum{CC1101=0,CC2500_1=1, CC2500_2=2};
 //Create event flags for the radios
 #define TxThrBytes 30   
 #define RxThrBytes 30
@@ -54,19 +57,26 @@ void TXRX(void *);
 void radio_interrupts(void);
 void Build_Packet(int);
 void TI_CC_Wait(unsigned int);
-void Reset_Radio(char);
-char Radio_Strobe(char, char);
-void Radio_Write_Registers(char addr, char value, char radio);
-void Radio_Write_Burst_Registers(char,unsigned char *, int, char);
-void Radio_Read_Burst_Registers(char,unsigned char *, int, char);
-char Radio_Read_Status(char addr, char radio);
-char RF_Receive_Packet(char *, char *, char);
-char Radio_Read_Registers(char addr, char radio);
-void RF_Send_Packet(unsigned char *txBuffer, int size, char radio);
-void Write_RF_Settings(char);
-void radio_init(void);
+void radio_SPI_setup(void);
+int set_radio_path(char *);
 
-//Definitions for CC2500 (also CC1100?) Registers
+
+char Radio_Read_Registers(char addr, int radio_select);
+void Radio_Read_Burst_Registers(char,unsigned char *, int, int radio_select);
+char Radio_Read_Status(char addr, int radio_select);
+char Radio_Strobe(char, int radio_select);
+void Radio_Write_Registers(char addr, char value, int radio_select);
+void Radio_Write_Burst_Registers(char,unsigned char *, int, int radio_select);
+void Reset_Radio(int radio_select);
+void RF_Send_Packet(unsigned char *txBuffer, int size, int radio_select);
+void Write_RF_Settings(int radio_select); 
+
+char RF_Receive_Packet(char *, char *, char);//TODO update This seems to have no function in radio_functions.c ????
+
+//Radio addressing var and function
+extern int radio_select;
+
+//Definitions for CC2500 (also CC1100) Registers
 
 // Configuration Registers
 #define TI_CCxxx0_IOCFG2       0x00        // GDO2 output pin configuration

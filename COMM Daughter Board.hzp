@@ -1,17 +1,16 @@
 <!DOCTYPE CrossStudio_Project_File>
-<solution Name="COMM-FLIGHT" target="9" version="2">
-  <project Name="COMM-FLIGHT">
+<solution Name="COMM Daughter Board Code" target="9" version="2">
+  <project Name="COMM Daughter Board Code">
     <configuration
       Name="Common"
       Platform="MSP430"
       Target="MSP430F6779A"
       build_use_hardware_multiplier="32-Bit Multiplier"
-      c_system_include_directories="$(PackagesDir)/libraries/libctl/include;$(StudioDir)/include;$(PackagesDir)/include;Z:/Software/include"
+      c_system_include_directories="$(StudioDir)/include;$(PackagesDir)/include;$(ARC_prefix)/include"
+      debug_threads_script="$(PackagesDir)/libraries/libctl/source/threads.js"
+      libctl="Yes"
       link_symbol_definitions="CTL_IRQ_STACK_SIZE=128"
-      link_use_multi_threaded_libraries="Yes"
-      linker_additional_files="$(PackagesDir)/libraries/libctl/lib/libctl$(LibExt).hza"
       linker_memory_map_file="$(PackagesDir)/targets/msp430/MSP430F6779A.xml"
-      linker_printf_fmt_level="long"
       linker_section_placement_file="$(StudioDir)/targets/section_placement_info_abcd_iv64.xml"
       macros="ARC_prefix=Z:/ARC-2/ARC2-Software"
       msp430_identify_string="MSP430F6779A"
@@ -21,25 +20,29 @@
       project_type="Executable" />
     <folder Name="Source Files">
       <configuration Name="Common" filter="c;h;s;asm;inc;s43" />
-      <file file_name="COMM.c" />
+      <file file_name="main.c" />
+      <file file_name="pins.h" />
       <file file_name="commands.c" />
-      <file file_name="Error_decode.c" />
+      <file file_name="COMM.c" />
+      <file file_name="COMM.h" />
       <file file_name="Radio_functions.c" />
       <file file_name="Radio_functions.h" />
-      <file file_name="main.c" />
-      <file file_name="timer.c" />
-      <file file_name="UC1int.c" />
-      <file file_name="timer.h" />
+      <file file_name="AX25_EncodeDecode.c" />
+      <file file_name="AX25_EncodeDecode.h" />
+      <file file_name="COMM_Events.c" />
+      <file file_name="COMM_Events.h" />
+      <file file_name="SD-dat.c" />
+      <file file_name="SD-dat.h" />
     </folder>
     <folder Name="System Files">
-      <file file_name="$(PackagesDir)/libraries/libctl/source/threads.js" />
+      <configuration Name="Common" filter="xml" />
     </folder>
     <configuration
       Name="Debug"
-      linker_additional_files="$(ARC_prefix)/lib/BUSlib_Debug.hza;$(ARC_prefix)/lib/Error_printf_Debug.hza;$(ARC_prefix)/lib/termlib_Debug.hza;$(ARC_prefix)/lib/UART_UCA1_Debug.hza;$(ARC_prefix)/lib/commandLib_Debug.hza" />
+      linker_additional_files="$(ARC_prefix)/lib/BUSlib_Debug.hza;$(ARC_prefix)/lib/Error_printf_Debug.hza;$(ARC_prefix)/lib/termlib_Debug.hza;$(ARC_prefix)/lib/commandLib_Debug.hza;$(ARC_prefix)/lib/SD-lib_err_Debug.hza;$(ARC_prefix)/lib/UART_UCA2_Debug.hza;$(ARC_prefix)/lib/SD-lib_UCA1_Debug.hza;$(ARC_prefix)/lib/I2Clib_Debug.hza;" />
     <configuration
       Name="Release"
-      linker_additional_files="$(ARC_prefix)/lib/BUSlib_Release.hza;$(ARC_prefix)/lib/Error_printf_Release.hza;$(ARC_prefix)/lib/termlib_Release.hza;$(ARC_prefix)/lib/UART_UCA1_Release.hza;$(ARC_prefix)/lib/commandLib_Release.hza" />
+      linker_additional_files="$(ARC_prefix)/lib/BUSlib_Release.hza;$(ARC_prefix)/lib/Error_printg_Release.hza;$(ARC_prefix)/lib/termlib_Release.hza;$(ARC_prefix)/lib/UART_UCA2_Release.hza;$(ARC_prefix)/lib/commandLib_Release.hza;$(ARC_prefix)/lib/SD-lib_err_Release.hza;$(ARC_prefix)/lib/SD-lib_UCA1_Release.hza;$(ARC_prefix)/lib/I2Clib_Release.hza;" />
   </project>
   <configuration
     Name="MSP430 Debug"
