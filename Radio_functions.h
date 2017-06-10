@@ -1,15 +1,16 @@
 #ifndef __Radio_functions_H
 #define __Radio_functions_H
 
-
-//Radio Pins for SPI 
-#define RADIO_PIN_SIMO BIT1 
-#define RADIO_PIN_SOMI BIT2 
+// Radio pins for SPI
+//for ARC2 change these defines for ARC2 ICD compliance 
+#define RADIO_PIN_SIMO BIT2 //correct 
+#define RADIO_PIN_SOMI BIT1 
 #define RADIO_PIN_SCK  BIT0 
 
+
 //Port Mapping Pins for SPI
-#define RADIO_PMAP_SIMO     P4MAP1
-#define RADIO_PMAP_SOMI     P4MAP2
+#define RADIO_PMAP_SIMO     P4MAP2
+#define RADIO_PMAP_SOMI     P4MAP1
 #define RADIO_PMAP_UCLK     P4MAP0
 
 //port mapping values

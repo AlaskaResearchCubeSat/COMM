@@ -20,7 +20,7 @@
 
 #define BUS_PINS_I2C      (BUS_PIN_SDA|BUS_PIN_SCL)
 
-#define BUS_PIN_SCK       BIT2  //TODO port map this 
+#define BUS_PIN_SCK       BIT2  //SPI for the header P3 UCA0
 #define BUS_PIN_SOMI      BIT5
 #define BUS_PIN_SIMO      BIT4
   

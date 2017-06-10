@@ -18,6 +18,7 @@ Then function must be added to the "const CMD_SPEC cmd_tbl[]={{"help"," [command
 #include "COMM.h"
 #include "AX25_EncodeDecode.h"
 #include "COMM_Events.h"
+#include "temp.h"
 
 
 
@@ -204,6 +205,24 @@ LED_cmd(char** argv, unsigned short argc){
 return 0;
 }
 
+// read temp data from SPI connected IC's
+temp_cmd(char** argv, unsigned short argc){
+  int *read;
+  int addr;
+
+    if(!(strcmp(argv[1],"CC1101"))){  //pick temp sens 
+      addr = 1;
+    }
+    else if(!(strcmp(argv[1],"CC2500"))){
+      addr = 2;
+    }
+    else{
+     addr = 1;  //defalt for extraneous input 
+    }
+    *read = temp_read_reg(addr); // read from temp sens
+    printf("Temp sens for the %s radio reads %i .\r\n",argv[1],read);
+}
+
 //table of commands with help
 const CMD_SPEC cmd_tbl[]={{"help"," [command]",helpCmd},
                    {"radio_status","",status_Cmd},
@@ -213,7 +232,9 @@ const CMD_SPEC cmd_tbl[]={{"help"," [command]",helpCmd},
                    {"power","[power]\r\n""get/set the radio output power\n\r",power_Cmd},
                    {"transmit_test","Testing tranmission of data\r\n [data][event] ", transmit_test},
                    {"LED","pulses LED's as binary counter",LED_cmd},
-                   ARC_COMMANDS,CTL_COMMANDS,// ERROR_COMMANDS
+                   {"temp","temp [CC1101/CC2500] .\r\n",temp_cmd},
+
+                   //ARC_COMMANDS,CTL_COMMANDS,// ERROR_COMMANDS
                    //end of list
                    {NULL,NULL,NULL}};
 

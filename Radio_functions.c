@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "Radio_functions.h"
+#include "temp.h"
 
 //char paTable_CC1101[] = {0x84};  //corresponds to +5dBm
 //char paTable_CC1101[] = {0xC8};  //corresponds to +7dBm
@@ -16,7 +17,7 @@ int Tx_Flag;
 // If you use UCAx for SPI look at errata USCI41. UCBUSY bit sticks. this does not occur for UCBx
 //***********************************************************************************************************************************************
 void radio_SPI_setup(void){
-//PORT MAP THE UCA3 TO PORT 3.5,6,7 
+//PORT MAP TO UCB1 
 //Code was copid from the SD lib code. SD lib code is port mapped for any communication periferial. 
 //I changed the MCC to Radio and applied the Radio SPI lines to the #defines in the Radio_functions.h file
 //We could try to set this up like SD card so that radios can be accessed on any of the SPI perifials and will still work. 
@@ -53,13 +54,18 @@ void radio_SPI_setup(void){
   //TODO replace with functions sel and desel
   P5OUT |= CS_CC1101;                     // Ensure CS for CC1101 is disabled
   P5OUT |= CS_CC2500;                     // Ensure CS for CC2500 is disabled
+  P5OUT |= Temp_Sensor1_CS;               // same setup for temp sens on radio SPI buss
+  P5OUT |= Temp_Sensor1_CS;               
 
   
   P5DIR |= CS_CC1101;                     //Set output for CC2500 CS
   P5DIR |= CS_CC2500;                     //Set output for CC2500_2 CS
+  P5DIR |= Temp_Sensor1_CS;                     
+  P5DIR |= Temp_Sensor2_CS;                    
+
  
   P4DIR |= RADIO_PIN_SIMO|RADIO_PIN_SCK;
-
+  
   //Set pins for SPI usage
   P4SEL0 |= RADIO_PINS_SPI;
 }
@@ -339,7 +345,7 @@ case CC2500:
 //baud : 38.4 kbs fo=2440ish  deviation 38.4/2
 //
 
-Radio_Write_Registers(TI_CCxxx0_IOCFG0,   0x00, CC2500);  // GDO0 output pin config. set to handle RX FIFO
+//Radio_Write_Registers(TI_CCxxx0_IOCFG0,   0x00, CC2500);  // GDO0 output pin config. set to handle RX FIFO
 Radio_Write_Registers(TI_CCxxx0_IOCFG2,   0x02, CC2500);  // GDO2 output pin config. set to handle TX FIFO
 Radio_Write_Registers(TI_CCxxx0_FIFOTHR,  0x0C, CC2500);  // FIFO Threshold: 13 byte in TX FIFO and 52 in RX FIFO (should IR for Jessy packet)
 
