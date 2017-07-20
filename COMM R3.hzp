@@ -1,6 +1,6 @@
 <!DOCTYPE CrossStudio_Project_File>
-<solution Name="COMM R3" target="9" version="2">
-  <project Name="COMM R3">
+<solution Name="COMM code REv3.1" target="9" version="2">
+  <project Name="COMM code REv3.1">
     <configuration
       Name="Common"
       Platform="MSP430"
@@ -33,7 +33,6 @@
       <file file_name="COMM_Events.h" />
       <file file_name="SD-dat.c" />
       <file file_name="SD-dat.h" />
-      <file file_name="temp.c" />
       <file file_name="temp.h" />
     </folder>
     <folder Name="System Files">

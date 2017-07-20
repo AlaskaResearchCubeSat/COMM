@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "Radio_functions.h"
-#include "temp.h"
 
 //char paTable_CC1101[] = {0x84};  //corresponds to +5dBm
 //char paTable_CC1101[] = {0xC8};  //corresponds to +7dBm
@@ -17,7 +16,7 @@ int Tx_Flag;
 // If you use UCAx for SPI look at errata USCI41. UCBUSY bit sticks. this does not occur for UCBx
 //***********************************************************************************************************************************************
 void radio_SPI_setup(void){
-//PORT MAP TO UCB1 
+//PORT MAP THE UCA3 TO PORT 3.5,6,7 
 //Code was copid from the SD lib code. SD lib code is port mapped for any communication periferial. 
 //I changed the MCC to Radio and applied the Radio SPI lines to the #defines in the Radio_functions.h file
 //We could try to set this up like SD card so that radios can be accessed on any of the SPI perifials and will still work. 
@@ -35,7 +34,6 @@ void radio_SPI_setup(void){
   PMAPKEYID=0;
 
 //SPI setup for MSP430f6779A is done on Port 4
-//Set up peripherals for COMM MSP
 //Radio SPI on P4: P4.2=UCB1SIMO, P4.4=USB1SOMI, P4.3=UCB1CLK
 //NOTE Redefined all SPI Setup on the UCA3 SPI port, COMM for ARC2 uses UCB1
 
@@ -47,40 +45,39 @@ void radio_SPI_setup(void){
   UCB1BRW = 16;                                   // Set frequency divider so SPI runs at 16/16 = 1 MHz
   UCB1CTLW0 &= ~UCSWRST;  //Bring UCB1 out of reset state
 
+  //NOTE Max SPI clk speed is 9 MHz is this done? "CCxxxx_DN_DN503"
+  
+
+  
+
 // ************************************************* PIN setup 
 
   //Radio CS P5.1=CC2500_CS_1 (ENABLE1), P5.2=CC2500_CS_2 (ENABLE2), 
   //Initial state for CS is High, CS pulled low to initiate SPI
   //TODO replace with functions sel and desel
-  P5OUT |= CS_CC1101;                     // Ensure CS for CC1101 is disabled
-  P5OUT |= CS_CC2500;                     // Ensure CS for CC2500 is disabled
-  P5OUT |= Temp_Sensor1_CS;               // same setup for temp sens on radio SPI buss
-  P5OUT |= Temp_Sensor1_CS;               
+  P5OUT |= CS_2500_1;                     // Ensure CS for CC2500_1 is disabled
+  P5OUT |= CS_2500_2;                     // Ensure CS for CC2500_2 is disabled
 
   
-  P5DIR |= CS_CC1101;                     //Set output for CC2500 CS
-  P5DIR |= CS_CC2500;                     //Set output for CC2500_2 CS
-  P5DIR |= Temp_Sensor1_CS;                     
-  P5DIR |= Temp_Sensor2_CS;                    
-
+  P5DIR |= CS_2500_1;                     //Set output for CC2500_1 CS
+  P5DIR |= CS_2500_2;                     //Set output for CC2500_2 CS
  
   P4DIR |= RADIO_PIN_SIMO|RADIO_PIN_SCK;
-  
+
   //Set pins for SPI usage
   P4SEL0 |= RADIO_PINS_SPI;
 }
 
 //******************************************* radio handling functions 
 
-// for ease of terminal testing. default address is CC2500_2 = 1
 int radio_select; // this is a global var
 int set_radio_path(char *radio){
-  if (strcmp(radio,"CC1101")==0){
-    radio_select=CC1101;    //CC1101 = 0
+  if (strcmp(radio,"CC2500_1")==0){
+    radio_select=CC2500_1;    //CC2500_1 = 1
     return 0;
   }
-  else if (strcmp(radio,"CC2500")==0){
-    radio_select=CC2500;    //CC2500 = 1
+  else if (strcmp(radio,"CC2500_2")==0){
+    radio_select=CC2500_2;    //CC2500_2 = 2
     return 0;
   }
   else{
@@ -89,31 +86,37 @@ int set_radio_path(char *radio){
 }
 
 int radio_SPI_sel (int radio_select){  // set CS lines for SPI
+// NOTE add CC1101 for other radio code
   switch (radio_select){
-  case CC1101:
-     P5OUT &= ~CS_CC1101;                           // CS enable CC1101
+  case CC2500_1:
+     P5OUT &= ~CS_2500_1;                           // CS enable CC1101
      break;
-  case CC2500:
-     P5OUT &= ~CS_CC2500;                           // CS enable CC2500
+  case CC2500_2:
+     P5OUT &= ~CS_2500_2;                           // CS enable CC2500
      break;
   default:
     return -1;
   }
 }
 int radio_SPI_desel(int radio_select){
+// NOTE add CC1101 for other radio code
   switch (radio_select){
-  case CC1101:
-     P5OUT |= CS_CC1101;                           // CS disable CC1101
+  case CC2500_1:
+     P5OUT |= CS_2500_1;                           // CS enable CC1101
      break;
-  case CC2500:
-     P5OUT |= CS_CC2500;                           // CS disable CC2500
+  case CC2500_2:
+     P5OUT |= CS_2500_2;                           // CS enable CC2500
      break;
   default:
     return -1;
   }
 }
 
-//Function to read a single byte from the radio registers
+//Function to read a SINGLE byte from the radio registers
+/*SPI Accesses --> |R/W|B|A5|A4|A3|A2|A1|A0|
+  The R/W bit = 1 --> read, 0 --> write
+  B = 1 --> Burst R/W, 0 single R/W
+ */
 char Radio_Read_Registers(char addr, int radio_select){
   char x;
   
@@ -124,7 +127,7 @@ char Radio_Read_Registers(char addr, int radio_select){
   while (!(UCB1IFG & UCTXIFG));               // Wait for TXBUF ready
   UCB1TXBUF = 0;                               // Dummy write so we can read data
   while (UCB1STAT & UCBUSY);                   // Wait for TX to complete
-  x = UCB1RXBUF;                               // Read data
+  x = UCB1RXBUF;                               // Read data`
 
   radio_SPI_desel(radio_select); // de-select SPI CS
 
@@ -232,35 +235,35 @@ void Radio_Write_Burst_Registers(char addr, unsigned char *buffer, int count, in
 void Reset_Radio(int radio_select)
 {
   switch (radio_select){
-  case CC1101:
-    P5OUT |= CS_CC1101;               //Toggle CS with delays to power up radio
+  case CC2500_1:
+    P5OUT |= CS_2500_1;               //Toggle CS with delays to power up radio
     TI_CC_Wait(30);
-    P5OUT &= ~CS_CC1101;
+    P5OUT &= ~CS_2500_1;
     TI_CC_Wait(30);
-    P5OUT |= CS_CC1101;
+    P5OUT |= CS_2500_1;
     TI_CC_Wait(45);
 
-    P5OUT &= ~CS_CC1101;              // CS enable
+    P5OUT &= ~CS_2500_1;              // CS enable
     while (!(UCB1IFG & UCTXIFG));  // Wait for TXBUF ready
     UCB1TXBUF = TI_CCxxx0_SRES;     // Send strobe
                                     // Strobe addr is now being TX'ed
     while (UCB1STAT & UCBUSY);      // Wait for TX to complete
-    P5OUT |= CS_CC1101;               // CS disable
+    P5OUT |= CS_2500_1;               // CS disable
     break;
-  case CC2500:
-    P5OUT |= CS_CC2500;               //Toggle CS with delays to power up radio
+  case CC2500_2:
+    P5OUT |= CS_2500_2;               //Toggle CS with delays to power up radio
     TI_CC_Wait(30);
-    P5OUT &= ~CS_CC2500;
+    P5OUT &= ~CS_2500_2;
     TI_CC_Wait(30);
-    P5OUT |= CS_CC2500;
+    P5OUT |= CS_2500_2;
     TI_CC_Wait(45);
 
-    P5OUT &= ~CS_CC2500;              // CS enable
+    P5OUT &= ~CS_2500_2;              // CS enable
     while (!(UCB1IFG & UCTXIFG));  // Wait for TXBUF ready
     UCB1TXBUF = TI_CCxxx0_SRES;     // Send strobe
                                     // Strobe addr is now being TX'ed
     while (UCB1STAT & UCBUSY);      // Wait for TX to complete
-    P5OUT |= CS_CC2500;               // CS disable
+    P5OUT |= CS_2500_2;               // CS disable
     break;
   }
 
@@ -284,7 +287,7 @@ void RF_Send_Packet(unsigned char *TxBuffer, int size, int radio_select)
 void Write_RF_Settings(int radio_select)
 {
 switch (radio_select){
-
+/*
 case CC1101:  
 // Register Values obtained via Smart Studio for CC1101
 // Settings:
@@ -338,53 +341,118 @@ Radio_Write_Registers(TI_CCxxx0_ADDR,     0x00, CC1101);
 Radio_Write_Registers(TI_CCxxx0_SYNC1,    0x7E, CC1101);      // SYNC Word High Byte (SYNC0 sync word low byte)
 Radio_Write_Registers(TI_CCxxx0_PATABLE,  0x84, CC1101);     //Set PA to 5dBm.
 break;
+*/
 
+case CC2500_1:
+// Write CC2500_1 register settings
+//baud : 38.4 kbs 
+// Product = CC2500
+// Crystal accuracy = 40 ppm
+// X-tal frequency = 26 MHz
+// RF output power = 1 dBm
+// RX filterbandwidth = 540.000000 kHz
+// Deviation = 38.085938 kHz
+// Return state:  Return to RX state upon leaving either TX or RX
+// Datarate = 2.39897 kBaud
+// Modulation = (7) FSK
+// Manchester enable = (0) Manchester disabled
+// RF Frequency = 2433.000000 MHz
+// Channel spacing = 199.950000 kHz
+// Channel number = 0
+// Optimization = Sensitivity
+// Sync mode = (3) 30/32 sync word bits detected
+// Format of RX/TX data = (0) Normal mode, use FIFOs for RX and TX
+// CRC operation = (1) CRC calculation in TX and CRC check in RX enabled
+// Forward Error Correction = (0) FEC disabled
+// Length configuration = (1) Variable length packets, packet length configured by the first received byte after sync word.
+// Packetlength = 255
+// Preamble count = (2)  4 bytes
+// Append status = 1
+// Address check = (0) No address check
+// FIFO autoflush = 0
+// Device address = 0
+// GDO0 signal selection = ( 6) Asserts when sync word has been sent / received, and de-asserts at the end of the packet
+// GDO2 signal selection = (11) Serial Clock
 
-case CC2500:
-// Write CC2500 register settings
-//baud : 38.4 kbs fo=2440ish  deviation 38.4/2
-//
+Radio_Write_Registers(TI_CCxxx0_IOCFG2,   0x02, CC2500_1);  // GDO2 output pin config.
+Radio_Write_Registers(TI_CCxxx0_IOCFG0,   0x00, CC2500_1);  // GDO0 output pin config.
+Radio_Write_Registers(TI_CCxxx0_FIFOTHR,  0x07, CC2500_1);  // FIFO Threshold: 21 byte in TX FIFO and 44 in RX FIFO
 
-//Radio_Write_Registers(TI_CCxxx0_IOCFG0,   0x00, CC2500);  // GDO0 output pin config. set to handle RX FIFO
-Radio_Write_Registers(TI_CCxxx0_IOCFG2,   0x02, CC2500);  // GDO2 output pin config. set to handle TX FIFO
-Radio_Write_Registers(TI_CCxxx0_FIFOTHR,  0x0C, CC2500);  // FIFO Threshold: 13 byte in TX FIFO and 52 in RX FIFO (should IR for Jessy packet)
-
-Radio_Write_Registers(TI_CCxxx0_PKTLEN,   0xFF, CC2500);  // Packet length.
-Radio_Write_Registers(TI_CCxxx0_PKTCTRL1, 0x04, CC2500);  // Packet automation control.
-Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x45, CC2500);  // Packet automation control.
-Radio_Write_Registers(TI_CCxxx0_ADDR,     0x00, CC2500);  // Device address.
-Radio_Write_Registers(TI_CCxxx0_CHANNR,   0x00, CC2500);  // Channel number.
-Radio_Write_Registers(TI_CCxxx0_FSCTRL1,  0x08, CC2500);  // Freq synthesizer control.
-Radio_Write_Registers(TI_CCxxx0_FSCTRL0,  0x00, CC2500);  // Freq synthesizer control.
-Radio_Write_Registers(TI_CCxxx0_FREQ2,    0x5D, CC2500);  // Freq control word, high byte
-Radio_Write_Registers(TI_CCxxx0_FREQ1,    0xD8, CC2500);  // Freq control word, mid byte.
-Radio_Write_Registers(TI_CCxxx0_FREQ0,    0x9D, CC2500);  // Freq control word, low byte.
-Radio_Write_Registers(TI_CCxxx0_MDMCFG4,  0x8A, CC2500);  // Modem configuration.
-Radio_Write_Registers(TI_CCxxx0_MDMCFG3,  0x83, CC2500);  // Modem configuration.
-Radio_Write_Registers(TI_CCxxx0_MDMCFG2,  0x04, CC2500);  // Modem configuration.
-Radio_Write_Registers(TI_CCxxx0_MDMCFG1,  0x00, CC2500);  // Modem configuration.
-Radio_Write_Registers(TI_CCxxx0_MDMCFG0,  0xF8, CC2500);  // Modem configuration.
-Radio_Write_Registers(TI_CCxxx0_DEVIATN,  0x45, CC2500);  // Modem dev (when FSK mod en)
-Radio_Write_Registers(TI_CCxxx0_MCSM1 ,   0x3F, CC2500);  // Main Radio Cntrl State Machine
-Radio_Write_Registers(TI_CCxxx0_MCSM0 ,   0x18, CC2500);  // Main Radio Cntrl State Machine
-Radio_Write_Registers(TI_CCxxx0_FOCCFG,   0x16, CC2500);  // Freq Offset Compens. Config
-Radio_Write_Registers(TI_CCxxx0_BSCFG,    0x1C, CC2500);  //  Bit synchronization config.
-Radio_Write_Registers(TI_CCxxx0_AGCCTRL2, 0xC7, CC2500);  // AGC control.
-Radio_Write_Registers(TI_CCxxx0_AGCCTRL1, 0x10, CC2500);  // AGC control.
-Radio_Write_Registers(TI_CCxxx0_AGCCTRL0, 0x91, CC2500);  // AGC control.
-Radio_Write_Registers(TI_CCxxx0_FREND1,   0x00, CC2500);  // Front end RX configuration.
-Radio_Write_Registers(TI_CCxxx0_FREND0,   0x11, CC2500);  // Front end RX configuration.
-Radio_Write_Registers(TI_CCxxx0_FSCAL3,   0xA9, CC2500);  // Frequency synthesizer cal.
-Radio_Write_Registers(TI_CCxxx0_FSCAL2,   0x0A, CC2500);  // Frequency synthesizer cal.
-Radio_Write_Registers(TI_CCxxx0_FSCAL1,   0x00, CC2500);  // Frequency synthesizer cal.
-Radio_Write_Registers(TI_CCxxx0_FSCAL0,   0x11, CC2500);  // Frequency synthesizer cal.
-Radio_Write_Registers(TI_CCxxx0_FSTEST,   0x59, CC2500);  // Frequency synthesizer cal.
-Radio_Write_Registers(TI_CCxxx0_TEST2,    0x88, CC2500);  // Various test settings.
-Radio_Write_Registers(TI_CCxxx0_TEST1,    0x31, CC2500);  // Various test settings.
-Radio_Write_Registers(TI_CCxxx0_TEST0,    0x0B, CC2500);  // Various test settings.
-Radio_Write_Registers(TI_CCxxx0_PATABLE,  0xFF, CC2500);    
+Radio_Write_Registers(TI_CCxxx0_PKTLEN,   0xFF, CC2500_1); // Packet length.
+Radio_Write_Registers(TI_CCxxx0_PKTCTRL1, 0x04, CC2500_1); // Packet automation control.
+Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x05, CC2500_1); // Packet automation control.
+Radio_Write_Registers(TI_CCxxx0_ADDR,     0x01, CC2500_1); // Device address.
+Radio_Write_Registers(TI_CCxxx0_CHANNR,   0x00, CC2500_1); // Channel number.
+Radio_Write_Registers(TI_CCxxx0_FSCTRL1,  0x08, CC2500_1); // Freq synthesizer control.
+Radio_Write_Registers(TI_CCxxx0_FSCTRL0,  0x00, CC2500_1); // Freq synthesizer control.
+Radio_Write_Registers(TI_CCxxx0_FREQ2,    0x5C, CC2500_1); // Freq control word, high byte
+Radio_Write_Registers(TI_CCxxx0_FREQ1,    0x4E, CC2500_1); // Freq control word, mid byte.
+Radio_Write_Registers(TI_CCxxx0_FREQ0,    0xC3, CC2500_1); // Freq control word, low byte.
+Radio_Write_Registers(TI_CCxxx0_MDMCFG4,  0x2B, CC2500_1); // Modem configuration.
+Radio_Write_Registers(TI_CCxxx0_MDMCFG3,  0xF8, CC2500_1); // Modem configuration.
+Radio_Write_Registers(TI_CCxxx0_MDMCFG2,  0x03, CC2500_1); // Modem configuration. FSK
+Radio_Write_Registers(TI_CCxxx0_MDMCFG1,  0x22, CC2500_1); // Modem configuration.
+Radio_Write_Registers(TI_CCxxx0_MDMCFG0,  0xF8, CC2500_1); // Modem configuration.
+Radio_Write_Registers(TI_CCxxx0_DEVIATN,  0x50, CC2500_1); // Modem dev (when FSK mod en) for FSK(47.607 kHz Deviation)
+Radio_Write_Registers(TI_CCxxx0_MCSM1 ,   0x30, CC2500_1); // MainRadio Cntrl State Machine
+Radio_Write_Registers(TI_CCxxx0_MCSM0 ,   0x18, CC2500_1); // MainRadio Cntrl State Machine
+Radio_Write_Registers(TI_CCxxx0_FOCCFG,   0x1D, CC2500_1); // Freq Offset Compens. Config
+Radio_Write_Registers(TI_CCxxx0_BSCFG,    0x1C, CC2500_1); // Bit synchronization config.
+Radio_Write_Registers(TI_CCxxx0_AGCCTRL2, 0x00, CC2500_1); // AGC control.
+Radio_Write_Registers(TI_CCxxx0_AGCCTRL1, 0x58, CC2500_1); // AGC control.
+Radio_Write_Registers(TI_CCxxx0_AGCCTRL0, 0x91, CC2500_1); // AGC control.
+Radio_Write_Registers(TI_CCxxx0_FREND1,   0x00, CC2500_1); // Front end RX configuration.
+Radio_Write_Registers(TI_CCxxx0_FREND0,   0x10, CC2500_1); // Front end RX configuration.
+Radio_Write_Registers(TI_CCxxx0_FSCAL3,   0xA9, CC2500_1); // Frequency synthesizer cal.
+Radio_Write_Registers(TI_CCxxx0_FSCAL2,   0x0A, CC2500_1); // Frequency synthesizer cal.
+Radio_Write_Registers(TI_CCxxx0_FSCAL1,   0x00, CC2500_1); // Frequency synthesizer cal.
+Radio_Write_Registers(TI_CCxxx0_FSCAL0,   0x11, CC2500_1); // Frequency synthesizer cal.
+Radio_Write_Registers(TI_CCxxx0_FSTEST,   0x59, CC2500_1); // Frequency synthesizer cal.
+Radio_Write_Registers(TI_CCxxx0_TEST2,    0x88, CC2500_1); // Various test settings.
+Radio_Write_Registers(TI_CCxxx0_TEST1,    0x31, CC2500_1); // Various test settings.
+Radio_Write_Registers(TI_CCxxx0_TEST0,    0x0B, CC2500_1); // Various test settings.
 break;
 
+case CC2500_2:
+// Write CC2500_2 register settings
+Radio_Write_Registers(TI_CCxxx0_IOCFG2,   0x02, CC2500_2); // GDO2 output pin config.
+Radio_Write_Registers(TI_CCxxx0_IOCFG0,   0x00, CC2500_2); // GDO0 output pin config.
+Radio_Write_Registers(TI_CCxxx0_FIFOTHR,  0x07, CC2500_2); // FIFO Threshold: 21 byte in TX FIFO and 44 in RX FIFO
+
+Radio_Write_Registers(TI_CCxxx0_PKTLEN,   0xFF, CC2500_2); // Packet length.
+Radio_Write_Registers(TI_CCxxx0_PKTCTRL1, 0x04, CC2500_2); // Packet automation control.
+Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x05, CC2500_2); // Packet automation control.
+Radio_Write_Registers(TI_CCxxx0_ADDR,     0x01, CC2500_2); // Device address.
+Radio_Write_Registers(TI_CCxxx0_CHANNR,   0x00, CC2500_2); // Channel number.
+Radio_Write_Registers(TI_CCxxx0_FSCTRL1,  0x08, CC2500_2); // Freq synthesizer control.
+Radio_Write_Registers(TI_CCxxx0_FSCTRL0,  0x00, CC2500_2); // Freq synthesizer control.
+Radio_Write_Registers(TI_CCxxx0_FREQ2,    0x5C, CC2500_2); // Freq control word, high byte
+Radio_Write_Registers(TI_CCxxx0_FREQ1,    0x4E, CC2500_2); // Freq control word, mid byte.
+Radio_Write_Registers(TI_CCxxx0_FREQ0,    0xC3, CC2500_2); // Freq control word, low byte.
+Radio_Write_Registers(TI_CCxxx0_MDMCFG4,  0x2B, CC2500_2); // Modem configuration.
+Radio_Write_Registers(TI_CCxxx0_MDMCFG3,  0xF8, CC2500_2); // Modem configuration.
+Radio_Write_Registers(TI_CCxxx0_MDMCFG2,  0x03, CC2500_2); // Modem configuration. FSK
+Radio_Write_Registers(TI_CCxxx0_MDMCFG1,  0x22, CC2500_2); // Modem configuration.
+Radio_Write_Registers(TI_CCxxx0_MDMCFG0,  0xF8, CC2500_2); // Modem configuration.
+Radio_Write_Registers(TI_CCxxx0_DEVIATN,  0x50, CC2500_2); // Modem dev (when FSK mod en) for FSK(47.607 kHz Deviation)
+Radio_Write_Registers(TI_CCxxx0_MCSM1 ,   0x30, CC2500_2); // MainRadio Cntrl State Machine
+Radio_Write_Registers(TI_CCxxx0_MCSM0 ,   0x18, CC2500_2); // MainRadio Cntrl State Machine
+Radio_Write_Registers(TI_CCxxx0_FOCCFG,   0x1D, CC2500_2); // Freq Offset Compens. Config
+Radio_Write_Registers(TI_CCxxx0_BSCFG,    0x1C, CC2500_2); // Bit synchronization config.
+Radio_Write_Registers(TI_CCxxx0_AGCCTRL2, 0x00, CC2500_2); // AGC control.
+Radio_Write_Registers(TI_CCxxx0_AGCCTRL1, 0x58, CC2500_2); // AGC control.
+Radio_Write_Registers(TI_CCxxx0_AGCCTRL0, 0x91, CC2500_2); // AGC control.
+Radio_Write_Registers(TI_CCxxx0_FREND1,   0x00, CC2500_2); // Front end RX configuration.
+Radio_Write_Registers(TI_CCxxx0_FREND0,   0x10, CC2500_2); // Front end RX configuration.
+Radio_Write_Registers(TI_CCxxx0_FSCAL3,   0xA9, CC2500_2); // Frequency synthesizer cal.
+Radio_Write_Registers(TI_CCxxx0_FSCAL2,   0x0A, CC2500_2); // Frequency synthesizer cal.
+Radio_Write_Registers(TI_CCxxx0_FSCAL1,   0x00, CC2500_2); // Frequency synthesizer cal.
+Radio_Write_Registers(TI_CCxxx0_FSCAL0,   0x11, CC2500_2); // Frequency synthesizer cal.
+Radio_Write_Registers(TI_CCxxx0_FSTEST,   0x59, CC2500_2); // Frequency synthesizer cal.
+Radio_Write_Registers(TI_CCxxx0_TEST2,    0x88, CC2500_2); // Various test settings.
+Radio_Write_Registers(TI_CCxxx0_TEST1,    0x31, CC2500_2); // Various test settings.
+Radio_Write_Registers(TI_CCxxx0_TEST0,    0x0B, CC2500_2); // Various test settings.
+break;
  }
 }
 

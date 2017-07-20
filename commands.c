@@ -15,19 +15,17 @@ Then function must be added to the "const CMD_SPEC cmd_tbl[]={{"help"," [command
 #include <i2c.h>
 #include <Radio_functions.h>
 #include <UCA2_uart.h>  
-#include "COMM.h"
 #include "AX25_EncodeDecode.h"
 #include "COMM_Events.h"
+#include "COMM.h"
 #include "temp.h"
-
-
 
 extern CTL_EVENT_SET_t COMM_evt; // define because this lives in COMM.c
 
-//*********************************************************************************** RADIO UART COMMANDS *****************************************************
-
+//*********************************************************************************** RADIO COMMANDS *****************************************************
+//NOTE do not define global vars in a local function ie "radio_select"
 int writeReg(char **argv,unsigned short argc){
-  char radio_select, regaddr, regdata;  // expecting [radio] [address] [data]
+  char regaddr, regdata;  // expecting [radio] [address] [data]
   int radio_check;
 
   if(argc>3){ // input checking and set radio address 
@@ -42,9 +40,11 @@ int writeReg(char **argv,unsigned short argc){
       return -2;
     }
   else{
+    //printf("Radio = %i\r\n",radio_select);
     regaddr=strtoul(argv[2],NULL,0);
     regdata = strtoul(argv[3],NULL,0);
     Radio_Write_Registers(regaddr, regdata, radio_select);
+    //Radio_Write_Registers(regaddr, regdata, 1);
     printf("Wrote register 0x%02x = 0x%02x [regaddr, regdata]\r\n", regaddr, regdata);
     return 0;
   }
@@ -82,10 +82,10 @@ char status1, status2, radio, state1, state2;
 // state info
  const char* statetbl[32]={"SLEEP","IDLE","XOFF","VCOON_MC","REGON_MC","MANCAL","VCOON","REGON","STARTCAL","BWBOOST","FS_LOCK","IFADCON","ENDCAL","RX","RX_END","RX_RST","TXRX_SWITCH","RXFIFO_OVERFLOW","FSTXON","TX","TX_END","RXTX_SWITCH","TXFIFO_UNDERFLOW"};
 // read 0x00 --> 0x2E
- status1=Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101); // get status of CC1101
- status2=Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500); // get status of CC2500
- state1=status1&(~(BIT7|BIT6|BIT5)); //get state of CC1101
- state2=status2&(~(BIT7|BIT6|BIT5)); //get state of CC2500
+ status1=Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_1); // get status of CC1101
+ status2=Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_2); // get status of CC2500
+ state1=status1&(~(BIT7|BIT6|BIT5)); //get state of CC2500_1
+ state2=status2&(~(BIT7|BIT6|BIT5)); //get state of CC2500_2
   if(0x00==state1){
    printf("Radio CC1011 is in the SLEEP state or may be unconnected");
   }
@@ -94,10 +94,10 @@ char status1, status2, radio, state1, state2;
   }
   else{
   // store stat stuff
-    printf("The status of the CC1101 is %s.\r\n",statetbl[status1]);
-    printf("The state of the CC1101 is %i.\r\n",state1);
-    printf("The status of the CC2500 is %s.\r\n",statetbl[status2]);
-    printf("The state of the CC2500 is %i.\r\n",state2);
+    printf("The status of the CC2500_1 is %s.\r\n",statetbl[status1]);
+    printf("The state of the CC2500_1 is %i.\r\n",state1);
+    printf("The status of the CC2500_2 is %s.\r\n",statetbl[status2]);
+    printf("The state of the CC2500_2 is %i.\r\n",state2);
   }
 return 0;
 } 
@@ -105,6 +105,7 @@ return 0;
 // streams data from radio argv[1]=ADR 
 //TODO   (update for second radio)
 int streamCmd(char **argv,unsigned short argc){
+
 // input checking 
   if(!strcmp(argv[1],"value")){
     data_mode=TX_DATA_PATTERN;
@@ -122,37 +123,18 @@ int streamCmd(char **argv,unsigned short argc){
       data_seed=1;
     }
   }
- 
   // input case statment to pick from enum table in COMM.h
-  ctl_events_set_clear(&COMM_evt,COMM_EVT_CC1101_TX_START,0); 
-  
+  ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_1_TX_START,0); 
   printf("Push any key to stop\r\n");
   getchar(); // waits for any char 
-  
   Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x00, radio_select);         // Fixed byte mode
   state = TX_END;
-
   return 0;
-}
-
-
-int transmit_test(char **argv,unsigned short argc){
-  int i=0;
-  data_mode=TX_DATA_BUFFER;
-  for(i=0;i<19;i++){
-    Tx1Buffer[i]=Packet_NoBit[i];
-  }
- while(UCA2_CheckKey()==EOF){
-  P7OUT ^= BIT1;  // flip a led every loop 
-  ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_TX_START,0);
-  BUS_delay_usec(5000);  // delay in ms
-
- }
 }
 
 //Select power output from the radio chip
 //TODO (update for second radio)
-int power_Cmd(char **argv,unsigned short argc){
+int powerCmd(char **argv,unsigned short argc){
   const int power_dbm[8]=             { -30, -20, -15, -10,   0,   5,   7,  10};
   const unsigned char power_PTABLE[8]={0x12,0x0E,0x1D,0x34,0x60,0x84,0xC8,0xC0};
   unsigned long input;
@@ -176,9 +158,9 @@ int power_Cmd(char **argv,unsigned short argc){
       }
     }
     printf("Setting radio to %idBm\r\n",power_dbm[idx]);
-    Radio_Write_Registers(TI_CCxxx0_PATABLE,power_PTABLE[idx],CC1101);
+    Radio_Write_Registers(TI_CCxxx0_PATABLE,power_PTABLE[idx],radio_select);
   }
-  read=Radio_Read_Registers(TI_CCxxx0_PATABLE,CC1101);
+  read=Radio_Read_Registers(TI_CCxxx0_PATABLE,radio_select);
   for(i=0,idx=-1;i<8;i++){
     if(power_PTABLE[i]==read){
       idx=i;
@@ -191,50 +173,98 @@ int power_Cmd(char **argv,unsigned short argc){
     printf("PTABLE = %idBm = 0x%02X\r\n",power_dbm[idx],read);
   }
   return 0;
-}
+} 
 
-//LED strobe on plugin (done)
-LED_cmd(char** argv, unsigned short argc){
-  P7DIR=0xFF;
-  P7OUT=0x00;
-  while(async_CheckKey()==EOF){
-    P7OUT=P7OUT+1;
-    ctl_timeout_wait(ctl_get_current_time()+50);
+
+// reset selected radio, if un-specified all radios rest
+//TODO gets stuck in set_radio_path.
+int radio_resetCmd(char **argv,unsigned short argc){
+  int radio_check;
+
+  if ( argc < 1){           // reset all radios if no args passed 
+    Reset_Radio(CC2500_1);
+    Reset_Radio(CC2500_2);
+    __delay_cycles(800);                         // Wait for radio to be ready before writing registers.cc1101.pdf Table 13 indicates a power-on start-up time of 150 us for the crystal to be stable
+    
+    Write_RF_Settings(CC2500_1);                // Write radios Settings
+    Write_RF_Settings(CC2500_2);                // Write radios Settings
+
+    Radio_Strobe(TI_CCxxx0_SRX, CC2500_1);          //Initialize CCxxxx in Rx mode
+    Radio_Strobe(TI_CCxxx0_SRX, CC2500_2);          //Initialize CCxxxx in Rx mode
+
   }
-  P7OUT = BUS_ADDR_COMM; // re-set LED to COMM addr
-return 0;
+  else{                     
+    radio_check = set_radio_path(argv[1]);       // reset specified radio
+    printf("radio path set to %d.\r\nradio_check = %d.\r\n",radio_select,radio_check);
+    if (radio_check && -1){
+      printf("Plese enter a valid radio, ex. \"CC1101, CC2500_1, CC2500_2\".\r\n");
+      return -1;
+    }
+    printf("The %s radio has been reset.\r\n");
+    Reset_Radio(radio_select);
+    __delay_cycles(800);                         // Wait for radio to be ready before writing registers.cc1101.pdf Table 13 indicates a power-on start-up time of 150 us for the crystal to be stable
+    Write_RF_Settings(radio_select);             // Write radios Settings
+  }
+  return 0;
 }
 
-// read temp data from SPI connected IC's
-temp_cmd(char** argv, unsigned short argc){
-  int *read;
-  int addr;
-
-    if(!(strcmp(argv[1],"CC1101"))){  //pick temp sens 
-      addr = 1;
+// beacon_on COMM's beacon arbiter var 1 = send 
+int beacon_onCmd(char **argv,unsigned short argc){
+  if(argc>1){
+    printf("Error : Too many arguments\r\n");
+    return -1;
+  }
+  if(argc==1){
+    if(!strcmp(argv[1],"on")){
+      beacon_on=1;
+    }else if(!strcmp(argv[1],"off")){
+      beacon_on=0;
+    }else{
+      printf("Error : Unknown argument \"%s\"\r\n",argv[1]);
+      return -2;
     }
-    else if(!(strcmp(argv[1],"CC2500"))){
-      addr = 2;
-    }
-    else{
-     addr = 1;  //defalt for extraneous input 
-    }
-    *read = temp_read_reg(addr); // read from temp sens
-    printf("Temp sens for the %s radio reads %i .\r\n",argv[1],read);
+  }
+  printf("Beacon : %s\r\n",beacon_on?"on":"off");
+  return 0;
 }
+
+// sets COMM's beacon_flag "hello" beacon var 1 = beacon("hello")
+int beacon_flagCmd(char **argv,unsigned short argc){
+  if(argc>1){
+    printf("Error : Too many arguments\r\n");
+    return -1;
+  }
+  if(argc==1){
+    if(!strcmp(argv[1],"on")){
+      beacon_flag=1;
+    }else if(!strcmp(argv[1],"off")){
+      beacon_flag=0;
+    }else{
+      printf("Error : Unknown argument \"%s\"\r\n",argv[1]);
+      return -2;
+    }
+  }
+  printf("Beacon_flag : %s\r\n",beacon_flag?"on":"off");
+  return 0;
+}
+
+int TestCmd(char **argv,unsigned short argc){
+
+  return 0;
+  }
 
 //table of commands with help
 const CMD_SPEC cmd_tbl[]={{"help"," [command]",helpCmd},
-                   {"radio_status","",status_Cmd},
-                   {"stream","[zeros|ones|[value [val]]]\r\n""Stream data from radio\n\r",streamCmd},
-                   {"writereg","Writes data to radio register\r\n [radio] [adress] [data]",writeReg},
-                   {"readreg","reads data from a radio register\r\n [radio] [adrss]",readReg},
-                   {"power","[power]\r\n""get/set the radio output power\n\r",power_Cmd},
-                   {"transmit_test","Testing tranmission of data\r\n [data][event] ", transmit_test},
-                   {"LED","pulses LED's as binary counter",LED_cmd},
-                   {"temp","temp [CC1101/CC2500] .\r\n",temp_cmd},
-
-                   //ARC_COMMANDS,CTL_COMMANDS,// ERROR_COMMANDS
+                   {"status","",status_Cmd},
+                   {"stream","[zeros|ones|[value [val]]]\r\n""Stream data from radio.\n\r",streamCmd},
+                   {"writereg","Writes data to radio register\r\n [radio] [adress] [data].\n\r",writeReg},
+                   {"readreg","reads data from a radio register\r\n [radio] [adrss].\n\r",readReg},
+                   {"power","Changes the transmit power of the radio [radio][power].\n\rex. CC2500_1 -24\n\r",powerCmd},
+                   {"radio_reset","Reset radios on COMM SPI bus.\n\rradio_reset [radio]. Note if no radio addr included all radios will be reset",radio_resetCmd},
+                   {"beacon","Toggles the COMM beacon on or off.\n\rCurrently targeting the CC2500_1",beacon_onCmd},
+                   {"beacon_flag","Toggles the COMM beacon \"hello\" packet on or off.\n\rCurrently targeting the CC2500_1",beacon_flagCmd},
+                   {"test","for testing things in code",TestCmd},
+                   ARC_COMMANDS,CTL_COMMANDS,// ERROR_COMMANDS
                    //end of list
                    {NULL,NULL,NULL}};
 

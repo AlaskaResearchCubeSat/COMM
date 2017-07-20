@@ -8,6 +8,7 @@
 #include "pins.h"         
 #include "Radio_functions.h"      
 #include "COMM.h"  
+#include <i2c.h>
 
 
 CTL_TASK_t terminal_task,sub_task,comm_task; // name your task (first thing to do when setting up a new task (1))
@@ -34,11 +35,11 @@ int __getchar(void){
 //******************************************* Main loop****************************************************************************************************************
 void main(void){
   //turn on LED's this will flash the LED's during startup
-  P7OUT=0x01;
+  P7OUT=0x00;
   P7DIR=0xFF;
-  
+
   //Initlize the comm communication port for the SPI 
-  radio_SPI_setup(); // Do this before ARC_setup because of PM, note this is also the SPI buss set up for the temp sensors
+  radio_SPI_setup(); // Do this before ARC_setup because of PM 
 
   //DO this first (but not before PM)
   ARC_setup(); 
@@ -48,6 +49,9 @@ void main(void){
 
   //initialize UART
   UCA2_init_UART(UART_PORT,UART_TX_PIN_NUM,UART_RX_PIN_NUM);
+
+ //set up I2C bus function(unsigned int port,unsigned int sda,unsigned int scl)
+  //initI2C(4,1,0);
 
   //setup bus interface
   initARCbus(0x1F);   // Default addr for "SYS" subsystem, should be changed for specific subsystems.
@@ -63,9 +67,9 @@ void main(void){
 
 
   // creating the tasks
-  ctl_task_run(&terminal_task, BUS_PRI_LOW,    terminal,    "COMM R3.1 NON FLIGTH!", "terminal",        sizeof(terminal_stack)/sizeof(terminal_stack[0])-2,   terminal_stack-1,0);
-  ctl_task_run(&comm_task,     BUS_PRI_NORMAL, COMM_events, NULL,                       "COMM_SYS_events", sizeof(COMM_sys_stack)/sizeof(COMM_sys_stack[0])-2,   COMM_sys_stack-1,0);
-  ctl_task_run(&sub_task,      BUS_PRI_HIGH,   sub_events,  NULL,                       "SUB_events",      sizeof(sub_stack)/sizeof(sub_stack[0])-2,             sub_stack-1,0);
+  ctl_task_run(&terminal_task, BUS_PRI_LOW,terminal,"COMM code REv3.1", "terminal",sizeof(terminal_stack)/sizeof(terminal_stack[0])-2,terminal_stack-1,0);
+  ctl_task_run(&comm_task,BUS_PRI_HIGH, COMM_events, NULL,"COMM_SYS_events", sizeof(COMM_sys_stack)/sizeof(COMM_sys_stack[0])-2,COMM_sys_stack-1,0);
+  ctl_task_run(&sub_task,BUS_PRI_NORMAL,sub_events,NULL,"SUB_events",sizeof(sub_stack)/sizeof(sub_stack[0])-2,sub_stack-1,0);
 
   //main loop <-- this is an ARCbus function 
   mainLoop(); 

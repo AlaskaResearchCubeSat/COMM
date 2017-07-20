@@ -10,6 +10,8 @@
 #include "SD-dat.h"
 #include "i2c.h"
 
+CTL_EVENT_SET_t ev_SPI_data;
+
 
 int comm_evt_gs_decode(void){
   int i, len, resp;
@@ -123,7 +125,6 @@ int COMM_CDH_reset(void){
     return RET_SUCCESS;
 }
 
-CTL_EVENT_SET_t ev_SPI_data;
 
 int COMM_Get_Data(unsigned char *data){
   int i;
@@ -220,7 +221,7 @@ int COMM_Send_Data(unsigned char *data){
      //**** Create AX.25 packet (needs to include FCS, bit stuffed, flags) ***
      CRC_CCITT_Generator(Tx1Buffer, &Tx1Buffer_Len);                           //Generate FCS
      Stuff_Transition_Scramble(Tx1Buffer, &Tx1Buffer_Len);                     //Bit stuff - Encode for transitions - Scramble data
-     ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_TX_START,0);                     //TODO make a fuction to select event Send to Radio to transmit 
+     ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_1_TX_START,0);                     //TODO make a fuction to select event Send to Radio to transmit 
      e=ctl_events_wait(CTL_EVENT_WAIT_ANY_EVENTS_WITH_AUTO_CLEAR,&ev_SPI_data,SPI_EV_DATA_TX,CTL_TIMEOUT_DELAY,1024);
      if(!(e&SPI_EV_DATA_TX)){
           //data not received
