@@ -694,7 +694,7 @@ void COMM_beacon_setup(void){    //enable 10 sec interrupt
 }
 
 //================[Time Tick interrupt]=========================
-void beacon_tick(void) __ctl_interrupt[TIMER2_A0_VECTOR]{
+void beacon_tick(void) __interrupt[TIMER2_A0_VECTOR]{
       P7OUT^=BIT7; //toggle bit 7
       sec++; // increment sec
       if(sec == 1){  // reset counter for beacon @ 10 seconds

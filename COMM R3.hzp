@@ -33,7 +33,6 @@
       <file file_name="COMM_Events.h" />
       <file file_name="SD-dat.c" />
       <file file_name="SD-dat.h" />
-      <file file_name="temp.h" />
     </folder>
     <folder Name="System Files">
       <configuration Name="Common" filter="xml" />

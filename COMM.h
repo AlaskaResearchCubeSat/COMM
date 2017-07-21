@@ -5,7 +5,7 @@ typedef int BOOL;
 #define TRUE 1
 #define FALSE 0
 
-#define CDH_RESET       BIT4
+#define CDH_RESET       BIT4 //P6.4
 
 //events for COMM task
 extern CTL_EVENT_SET_t COMM_evt;

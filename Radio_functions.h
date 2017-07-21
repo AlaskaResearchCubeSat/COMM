@@ -2,16 +2,15 @@
 #define __Radio_functions_H
 
 
-//Radio Pins for SPI 
-//for ARC2 change these defines for ARC2 ICD compliance 
+//Radio Pins for SPI UCB1 P4.0
 #define RADIO_PIN_SIMO BIT2 
-#define RADIO_PIN_SOMI BIT4 
-#define RADIO_PIN_SCK  BIT3 
+#define RADIO_PIN_SOMI BIT1 
+#define RADIO_PIN_SCK  BIT0 
 
 //Port Mapping Pins for SPI
 #define RADIO_PMAP_SIMO     P4MAP2
-#define RADIO_PMAP_SOMI     P4MAP4
-#define RADIO_PMAP_UCLK     P4MAP3
+#define RADIO_PMAP_SOMI     P4MAP1
+#define RADIO_PMAP_UCLK     P4MAP0
 
 //port mapping values
 #define RADIO_PM_SIMO     PM_UCB1SIMO
@@ -31,19 +30,19 @@
 #define RX_RUNNING   5
 
 //defines for COMM Daughter board build
-#define CS_2500_1           BIT1  //BIT1 dev board daughter board!!!
-#define CS_2500_2           BIT2 //BIT2 dev board daughter board!!!  #define CC1101_GDO0  BIT0  //BIT0 on dev board daughter board!!!
+#define CS_CC1101           BIT4  //P5.4 
+#define CS_CC2500_1         BIT5  //P5.5 
 
-#define CC1101_GDO0       BIT0  //P1.0
-#define CC1101_GDO2       BIT1  //P1.1
-#define CC2500_1_GDO0       BIT2  //P1.2
-#define CC2500_1_GDO2       BIT3  //P1.3
+#define CC1101_GDO0         BIT1  //P1.x intr.
+#define CC1101_GDO2         BIT2  
+#define CC2500_1_GDO0       BIT3  
+#define CC2500_1_GDO2       BIT4  
 
 //P1IV definitions. These MUST match to the pins above!!!!!
-#define CC1101_GDO0_IV    P1IV_P1IFG0  //inturupt on P1.0
-#define CC1101_GDO2_IV    P1IV_P1IFG1  //inturupt on P1.1
-#define CC2500_2_GDO0_IV    P1IV_P1IFG2  //inturupt on P1.2
-#define CC2500_2_GDO2_IV    P1IV_P1IFG3  //inturupt on P1.3
+#define CC1101_GDO0_IV      P1IV_P1IFG0  //inturupt on P1.0
+#define CC1101_GDO2_IV      P1IV_P1IFG1  //inturupt on P1.1
+#define CC2500_1_GDO0_IV    P1IV_P1IFG2  //inturupt on P1.2
+#define CC2500_1_GDO2_IV    P1IV_P1IFG3  //inturupt on P1.3
 
 enum power_level{power1=-55,power2=-30, power3= -28, power4 = -26, power5 = -24, power6 =-22, power7=-20, power8=-18, power9=-16,power10=-14,power11=12, power12=-10, power13=-8, power14=-6, power15=-4, power16=-2, power17=0, power18=1};
 
@@ -59,7 +58,8 @@ void Build_Packet(int);
 void TI_CC_Wait(unsigned int);
 void radio_SPI_setup(void);
 int set_radio_path(char *);
-
+int radio_SPI_desel(int);
+int radio_SPI_sel (int);
 
 char Radio_Read_Registers(char addr, int radio_select);
 void Radio_Read_Burst_Registers(char,unsigned char *, int, int radio_select);

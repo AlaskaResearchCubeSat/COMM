@@ -19,6 +19,7 @@ Then function must be added to the "const CMD_SPEC cmd_tbl[]={{"help"," [command
 #include "COMM_Events.h"
 #include "COMM.h"
 #include "temp.h"
+#include "Radio_functions.h"
 
 extern CTL_EVENT_SET_t COMM_evt; // define because this lives in COMM.c
 
@@ -82,25 +83,25 @@ char status1, status2, radio, state1, state2;
 // state info
  const char* statetbl[32]={"SLEEP","IDLE","XOFF","VCOON_MC","REGON_MC","MANCAL","VCOON","REGON","STARTCAL","BWBOOST","FS_LOCK","IFADCON","ENDCAL","RX","RX_END","RX_RST","TXRX_SWITCH","RXFIFO_OVERFLOW","FSTXON","TX","TX_END","RXTX_SWITCH","TXFIFO_UNDERFLOW"};
 // read 0x00 --> 0x2E
- status1=Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_1); // get status of CC1101
- status2=Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_2); // get status of CC2500
+ status1=Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC1101);   // get status of CC1101
+ status2=Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_1); // get status of CC2500
  state1=status1&(~(BIT7|BIT6|BIT5)); //get state of CC2500_1
  state2=status2&(~(BIT7|BIT6|BIT5)); //get state of CC2500_2
   if(0x00==state1){
-   printf("Radio CC1011 is in the SLEEP state or may be unconnected");
+   printf("The CC1101 is in the SLEEP state or may be unconnected.\r\n");
   }
   else if(0x00==state2){
-   printf("Radio CC2500 is in the SLEEP state or may be unconnected");
+   printf("The CC2500 is in the SLEEP state or may be unconnected.\r\n");
   }
   else{
   // store stat stuff
-    printf("The status of the CC2500_1 is %s.\r\n",statetbl[status1]);
-    printf("The state of the CC2500_1 is %i.\r\n",state1);
-    printf("The status of the CC2500_2 is %s.\r\n",statetbl[status2]);
-    printf("The state of the CC2500_2 is %i.\r\n",state2);
+    printf("The status of the CC1101 is %s.\r\n",statetbl[status1]);
+    printf("The state of the CC1101 is %i.\r\n",state1);
+    printf("The status of the CC2500_1 is %s.\r\n",statetbl[status2]);
+    printf("The state of the CC2500_1 is %i.\r\n",state2);
   }
 return 0;
-} 
+}
 
 // streams data from radio argv[1]=ADR 
 //TODO   (update for second radio)
@@ -182,15 +183,15 @@ int radio_resetCmd(char **argv,unsigned short argc){
   int radio_check;
 
   if ( argc < 1){           // reset all radios if no args passed 
+    Reset_Radio(CC1101);
     Reset_Radio(CC2500_1);
-    Reset_Radio(CC2500_2);
     __delay_cycles(800);                         // Wait for radio to be ready before writing registers.cc1101.pdf Table 13 indicates a power-on start-up time of 150 us for the crystal to be stable
     
+    Write_RF_Settings(CC1101);                // Write radios Settings
     Write_RF_Settings(CC2500_1);                // Write radios Settings
-    Write_RF_Settings(CC2500_2);                // Write radios Settings
 
+    Radio_Strobe(TI_CCxxx0_SRX, CC1101);          //Initialize CCxxxx in Rx mode
     Radio_Strobe(TI_CCxxx0_SRX, CC2500_1);          //Initialize CCxxxx in Rx mode
-    Radio_Strobe(TI_CCxxx0_SRX, CC2500_2);          //Initialize CCxxxx in Rx mode
 
   }
   else{                     
@@ -249,9 +250,18 @@ int beacon_flagCmd(char **argv,unsigned short argc){
 }
 
 int TestCmd(char **argv,unsigned short argc){
-
+  
+  set_radio_path(argv[1]);
+  if(argc > 1){
+   radio_SPI_sel (radio_select); 
+   printf("The %s radio has been selected.\r\n", argv[1]);
+   }
+   else{
+   radio_SPI_desel(radio_select);
+   printf("The %s radio has been deselected.\r\n", argv[1]);
+   }
   return 0;
-  }
+}
 
 //table of commands with help
 const CMD_SPEC cmd_tbl[]={{"help"," [command]",helpCmd},
@@ -264,7 +274,7 @@ const CMD_SPEC cmd_tbl[]={{"help"," [command]",helpCmd},
                    {"beacon","Toggles the COMM beacon on or off.\n\rCurrently targeting the CC2500_1",beacon_onCmd},
                    {"beacon_flag","Toggles the COMM beacon \"hello\" packet on or off.\n\rCurrently targeting the CC2500_1",beacon_flagCmd},
                    {"test","for testing things in code",TestCmd},
-                   ARC_COMMANDS,CTL_COMMANDS,// ERROR_COMMANDS
+                  // ARC_COMMANDS,CTL_COMMANDS, ERROR_COMMANDS
                    //end of list
                    {NULL,NULL,NULL}};
 
