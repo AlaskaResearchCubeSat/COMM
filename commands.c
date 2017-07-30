@@ -48,6 +48,7 @@ int writeReg(char **argv,unsigned short argc){
     //Radio_Write_Registers(regaddr, regdata, 1);
     printf("Wrote register 0x%02x = 0x%02x [regaddr, regdata]\r\n", regaddr, regdata);
     return 0;
+
   }
 
   printf("Error : %s requires 3 arguments but %u given\r\n",argv[0],argc);
@@ -87,19 +88,18 @@ char status1, status2, radio, state1, state2;
  status2=Radio_Read_Status(TI_CCxxx0_MARCSTATE,CC2500_1); // get status of CC2500
  state1=status1&(~(BIT7|BIT6|BIT5)); //get state of CC2500_1
  state2=status2&(~(BIT7|BIT6|BIT5)); //get state of CC2500_2
-  if(0x00==state1){
-   printf("The CC1101 is in the SLEEP state or may be unconnected.\r\n");
+/*  ( printf("The CC1101 is in the SLEEP state or may be unconnected.\r\n");
   }
   else if(0x00==state2){
    printf("The CC2500 is in the SLEEP state or may be unconnected.\r\n");
   }
-  else{
+  else{*/
   // store stat stuff
     printf("The status of the CC1101 is %s.\r\n",statetbl[status1]);
     printf("The state of the CC1101 is %i.\r\n",state1);
     printf("The status of the CC2500_1 is %s.\r\n",statetbl[status2]);
     printf("The state of the CC2500_1 is %i.\r\n",state2);
-  }
+  //}
 return 0;
 }
 
@@ -249,6 +249,14 @@ int beacon_flagCmd(char **argv,unsigned short argc){
   return 0;
 }
 
+int tempCmd(char **argv, unsigned short argc){
+  int temp_data[2];
+  temp_select = set_temp_sel(argv[1]);  // set temp you want to talk to
+  *temp_data = temp_read_reg(temp_select);  // read temp vals
+  printf("Temp on the %i and %i.\r\n",temp_data[0],temp_data[1]);
+  return 0;
+}
+
 int TestCmd(char **argv,unsigned short argc){
   
   set_radio_path(argv[1]);
@@ -273,6 +281,7 @@ const CMD_SPEC cmd_tbl[]={{"help"," [command]",helpCmd},
                    {"radio_reset","Reset radios on COMM SPI bus.\n\rradio_reset [radio]. Note if no radio addr included all radios will be reset",radio_resetCmd},
                    {"beacon","Toggles the COMM beacon on or off.\n\rCurrently targeting the CC2500_1",beacon_onCmd},
                    {"beacon_flag","Toggles the COMM beacon \"hello\" packet on or off.\n\rCurrently targeting the CC2500_1",beacon_flagCmd},
+                   {"temp","grabbing temp data",tempCmd},
                    {"test","for testing things in code",TestCmd},
                   // ARC_COMMANDS,CTL_COMMANDS, ERROR_COMMANDS
                    //end of list

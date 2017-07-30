@@ -53,8 +53,6 @@ void radio_SPI_setup(void){
   radio_SPI_desel(CC1101);                 // Ensure CS for CC1101 is disabled
   radio_SPI_desel(CC2500_1);                  // Ensure CS for CC2500_1 is disabled
 
-  P4DIR |= RADIO_PIN_SIMO|RADIO_PIN_SCK;
-
   //Set pins for SPI usage
   P4SEL0 |= RADIO_PINS_SPI;
 }
@@ -330,7 +328,7 @@ Radio_Write_Registers(TI_CCxxx0_PKTCTRL0, 0x02, CC1101);      // Infinite packet
 Radio_Write_Registers(TI_CCxxx0_PKTLEN,   0xFF, CC1101);      // Packet length set for fixed packet length mode
 Radio_Write_Registers(TI_CCxxx0_ADDR,     0x00, CC1101);
 Radio_Write_Registers(TI_CCxxx0_SYNC1,    0x7E, CC1101);      // SYNC Word High Byte (SYNC0 sync word low byte)
-Radio_Write_Registers(TI_CCxxx0_PATABLE,  0x84, CC1101);     //Set PA to 5dBm.
+Radio_Write_Registers(TI_CCxxx0_PATABLE,  0xC0, CC1101);     //Set PA to 10dBm.
 break;
 
 
@@ -365,8 +363,8 @@ case CC2500_1:
 // GDO0 signal selection = ( 6) Asserts when sync word has been sent / received, and de-asserts at the end of the packet
 // GDO2 signal selection = (11) Serial Clock
 
-Radio_Write_Registers(TI_CCxxx0_IOCFG2,   0x02, CC2500_1);  // GDO2 output pin config.
-Radio_Write_Registers(TI_CCxxx0_IOCFG0,   0x00, CC2500_1);  // GDO0 output pin config.
+Radio_Write_Registers(TI_CCxxx0_IOCFG2,   0x02, CC2500_1);  // GDO2 output pin config. TX
+Radio_Write_Registers(TI_CCxxx0_IOCFG0,   0x00, CC2500_1);  // GDO0 output pin config. RX
 Radio_Write_Registers(TI_CCxxx0_FIFOTHR,  0x07, CC2500_1);  // FIFO Threshold: 21 byte in TX FIFO and 44 in RX FIFO
 
 Radio_Write_Registers(TI_CCxxx0_PKTLEN,   0xFF, CC2500_1); // Packet length.

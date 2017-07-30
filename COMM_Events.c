@@ -13,7 +13,7 @@
 CTL_EVENT_SET_t ev_SPI_data;
 
 
-int comm_evt_gs_decode(void){
+int comm_evt_gs_decode(void){// this is called from RX_event! 
   int i, len, resp;
   unsigned char FCS[2];
   unsigned char buf[BUS_I2C_HDR_LEN+30+BUS_I2C_CRC_LEN],*ptr;
@@ -77,6 +77,7 @@ int comm_evt_gs_decode(void){
               return ERR_UNKNOWN_COMM_CMD;
           }
        } 
+       //TODO this is no longer how ARC-2 works. we will send directly to subsystem not to CDH then relay.
     //else send to CDH  send CMD_GS_DATA I2C command to CDH with payload RxBuffer[16] - end    
        else { 
          printf("Sending GS CMD to CDH\r\n");

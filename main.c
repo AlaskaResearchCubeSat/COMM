@@ -56,6 +56,8 @@ void main(void){
   //setup bus interface
   initARCbus(0x1F);   // Default addr for "SYS" subsystem, should be changed for specific subsystems.
 
+ //initialize SDcard
+ //TODO mmcInit_msp();
    
   // initialize stacks (3) 
   memset(terminal_stack,0xcd,sizeof(terminal_stack));                                                     // write known values into the stack 

@@ -152,26 +152,26 @@ void COMM_events(void *p) __toplevel{
   unsigned int e, count;
   int i, resp; 
 // NOTE should we clear flags or does rest do this ? 
-    Reset_Radio(CC2500_1);                 // Reset Radios/initialize status
-    Reset_Radio(CC1101);                 // Reset Radios/initialize status
+    Reset_Radio(CC2500_1);                  // Reset Radios/initialize status
+    Reset_Radio(CC1101);                    // Reset Radios/initialize status
 
 
   __delay_cycles(800);                         // Wait for radio to be ready before writing registers.cc1101.pdf Table 13 indicates a power-on start-up time of 150 us for the crystal to be stable
                                                // After reset chip is in IDLE state
-  Write_RF_Settings(CC1101);             // Write radios Settings
-  Write_RF_Settings(CC2500_1);             // Write radios Settings
+  Write_RF_Settings(CC1101);                   // Write radios Settings
+  Write_RF_Settings(CC2500_1);                 // Write radios Settings
 
   //Radio_Write_Burst_Registers(TI_CCxxx0_PATABLE, paTable_CC1101, paTableLen, CC1101);
   Radio_Interrupt_Setup();
     
   //TODO Need to set up two radio setups. Might have to have them done separtely  
   Radio_Strobe(TI_CCxxx0_SRX, CC2500_1);          //Initialize CCxxxx in Rx mode
-  Radio_Strobe(TI_CCxxx0_SRX, CC1101);          //Initialize CCxxxx in Rx mode
+  Radio_Strobe(TI_CCxxx0_SRX, CC1101);            //Initialize CCxxxx in Rx mode
 
   //NOTE in flight code this should be called after insertion delay timer
   COMM_beacon_setup();                            // start beacon timer (dose not start transmission)
 
-  ctl_events_init(&COMM_evt,0);                 //Initialize Event
+  ctl_events_init(&COMM_evt,0);                   //Initialize Event
 
   //endless loop
   for(;;){
@@ -227,6 +227,7 @@ void COMM_events(void *p) __toplevel{
       // Then wait until interrupt received again.
       radio_select = CC1101;  // sel radio
       Radio_Read_Burst_Registers(TI_CCxxx0_RXFIFO, RxTemp, RxThrBytes, radio_select);
+      Reverse_Scramble_Transition_Stuff(RxTemp, RxThrBytes); // this is rev. of TX and gets all data byte registered --> COMM_events
       status.CC1101 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,radio_select);
       printf("Radio State: 0x%02x \n\rCC1101 RX.\r\n", status.CC1101);
     }
@@ -404,7 +405,9 @@ void COMM_events(void *p) __toplevel{
       // Need to read RXThrBytes into RXBuffer then move RxBufferPos by RxThrBytes
       // Then wait until interrupt received again.
       radio_select = CC2500_1;  // sel radio
+                              //(char addr, unsigned char *buffer, int count, int radio_select)
       Radio_Read_Burst_Registers(TI_CCxxx0_RXFIFO, RxTemp, RxThrBytes, radio_select);
+      Reverse_Scramble_Transition_Stuff(RxTemp, RxThrBytes); // this is rev. of TX and gets all data byte registered --> COMM_events
       status.CC2500_1 = Radio_Read_Status(TI_CCxxx0_MARCSTATE,radio_select);
       printf("Radio State: 0x%02x \n\rCC2500_1 RX.\r\n", status.CC2500_1);
     }
@@ -413,7 +416,7 @@ void COMM_events(void *p) __toplevel{
       state = TX_START; 
       TxBufferPos = 0;
       radio_select = CC2500_1;  // sel radio
-      P1IE |= CC1101_GDO2;
+      P1IE |= CC2500_1_GDO2;
       // "package" beacon data 
         for(i=0;i<COMM_TXHEADER_LEN;i++){                                             //LOAD UP HEADER
           Tx1Buffer[i]=__bit_reverse_char(Tx1_Header[i]);                             //AX.25 octets are sent LSB first
@@ -510,7 +513,7 @@ void COMM_events(void *p) __toplevel{
       // Need to write TXThrBytes (30 bytes) from TXBuffer then move TxBufferPos by TxThrBytes
       // Then wait until interrupt received again or go to TX_END.
       radio_select = CC2500_1;  // sel radio
-      P1IE |= CC1101_GDO2;
+      P1IE |= CC2500_1_GDO2;
 
       if(data_mode==TX_DATA_BUFFER){
           if(TxBytesRemaining > TxThrBytes)
@@ -608,14 +611,9 @@ void PrintBufferBitInv(char *dat, unsigned int len){
 void Radio_Interrupt_Setup(void){ // Enable RX interrupts only!  TX interrupt enabled in TX Start
   // Use GDO0 and GDO2 as interrupts to control TX/RX of radio
   P1DIR = 0;			        // Port 1 configured as inputs (i.e. GDO0 and GDO2 are inputs)
-  P1IES = 0;
-  P1IES |= CC1101_GDO2|CC2500_1_GDO2; // GDO0 interrupts on rising edge = 0 (RX), GDO2 interrupts on falling edge = 1 (TX) 
-
+  P1IES = 0;          // flag is set with a low to high transition
   P1IFG = 0;// Clear all flags <-- do this after IES as it will set a BIT2 high (pg 413 fam)
-  P1IE |= CC2500_1_GDO2|CC1101_GDO0|CC1101_GDO2; // Enable GDO0 interrupt only (RX interrupt) add this back after single TX works CC1101_GDO0
-    
-    // For testing with only the CC1101 RX
-    P1IE |= CC1101_GDO2;
+  P1IE |= CC2500_1_GDO2|CC2500_1_GDO0|CC1101_GDO0|CC1101_GDO2; // Enable GDO0 and GDO2 interrupts
 }
 
 void Port1_ISR (void) __ctl_interrupt[PORT1_VECTOR]{
@@ -623,11 +621,12 @@ void Port1_ISR (void) __ctl_interrupt[PORT1_VECTOR]{
     //reading automatically resets the flag for the returned state
     switch(P1IV){
 // RADIO CC2500_1 interrupts
-       case P1IV_P1IFG0: // [GDO0_1] is set up to assert when RX FIFO is greater than FIFO_THR.  This is an RX function only
+       case CC2500_1_GDO0_IV: // [CC2500_GDO0] RX is set up to assert when RX FIFO is greater than FIFO_THR.  This is an RX function only
+            P7OUT ^= BIT3; // filp a led
             ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_1_RX_READ,0);
         break;
     // TX state
-        case P1IV_P1IFG1: //[GDO2_1]is set up to assert when TX FIFO is above FIFO_THR threshold.  
+        case CC2500_1_GDO2_IV: //[CC2500_GDO2] TX is set up to assert when TX FIFO is above FIFO_THR threshold.  
     // Actual interrupt SR                
             switch(state)
             {
@@ -649,12 +648,12 @@ void Port1_ISR (void) __ctl_interrupt[PORT1_VECTOR]{
             }
         break;
 // Radio CC1101 interrupts
-        case P1IV_P1IFG2: // [GDO0_2] is set up to assert when RX FIFO is greater than FIFO_THR.  This is an RX function only
+        case CC1101_GDO2_IV: // [CC1101_GDO0] RX is set up to assert when RX FIFO is greater than FIFO_THR.  This is an RX function only
           P7OUT ^= BIT4;
           ctl_events_set_clear(&COMM_evt,COMM_EVT_CC1101_RX_READ,0);
         break; 
     //TX state
-        case P1IV_P1IFG3: //[GDO2_2] is set up to assert when TX FIFO is above FIFO_THR threshold.  
+        case CC1101_GDO0_IV: //[CC1101_GDO2] TX is set up to assert when TX FIFO is above FIFO_THR threshold.  
                                  //Interrupts on falling edge, i.e. when TX FIFO falls below FIFO_THR
     // Actual interrupt SR
             switch(state)
@@ -676,6 +675,8 @@ void Port1_ISR (void) __ctl_interrupt[PORT1_VECTOR]{
                   break;          
             }
         break; 
+        default:
+        break;
         }
 }
 
@@ -700,6 +701,7 @@ void beacon_tick(void) __interrupt[TIMER2_A0_VECTOR]{
       if(sec == 1){  // reset counter for beacon @ 10 seconds
         P7OUT^=BIT6; //toggle bit 5
         if (beacon_on){
+          //ctl_events_set_clear(&COMM_evt,COMM_EVT_CC2500_1_TX_START,0);     //Send to Radio to transmit mode
           ctl_events_set_clear(&COMM_evt,COMM_EVT_CC1101_TX_START,0);     //Send to Radio to transmit mode
         }
         sec=0;  // reset 

@@ -12,7 +12,7 @@ D15 -->D0, where D15 is a dummy bit and always zero. D14-->D3, contain the conve
 int temp_select;  // keep track of witch temp sens we are talking to either temp1 (CC1101 channel) or temp2 (CC2500 channel)
 
 //set temp path
-int set_temp(char *temp){
+int set_temp_sel(char *temp){
   if(strcmp(temp,"temp1")){ 
     temp_select = 1;
   }

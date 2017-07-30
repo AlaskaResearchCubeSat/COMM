@@ -4,8 +4,13 @@
 typedef int BOOL;
 #define TRUE 1
 #define FALSE 0
-
 #define CDH_RESET       BIT4 //P6.4
+
+//P1IV definitions. These MUST match to the pins above!!!!!
+#define CC1101_GDO0_IV      P1IV_P1IFG1  // interrupt on P1.0
+#define CC1101_GDO2_IV      P1IV_P1IFG2  // interrupt on P1.1
+#define CC2500_1_GDO0_IV    P1IV_P1IFG3  // interrupt on P1.2
+#define CC2500_1_GDO2_IV    P1IV_P1IFG4  // interrupt on P1.3
 
 //events for COMM task
 extern CTL_EVENT_SET_t COMM_evt;
